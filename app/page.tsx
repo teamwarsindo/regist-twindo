@@ -24,14 +24,16 @@ export default function Page() {
       <div className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-16 pt-6 sm:px-6">
         {/* Header */}
         <header className="mb-10 flex flex-col items-center text-center">
-          <div className="glow-border mb-6 rounded-2xl bg-card/40 p-3 backdrop-blur-sm">
+          {/* UPDATE DI SINI: Hapus bg-card/40, kurangi padding, tambahkan overflow-hidden */}
+          <div className="glow-border mb-6 overflow-hidden rounded-2xl p-1 backdrop-blur-sm">
             <Image
-              src="/logo.webp"
+              src="/logo.png" // Pastikan ekstensi file sesuai (png/webp)
               alt="Logo Team Wars Indonesia"
               width={120}
               height={120}
               priority
-              className="h-[110px] w-[110px] object-contain"
+              {/* UPDATE DI SINI: Tambahkan rounded-xl agar sudut putihnya melengkung halus */}
+              className="h-[120px] w-[120px] rounded-xl object-contain"
             />
           </div>
           <h1 className="glow-text text-balance text-3xl font-bold tracking-tight sm:text-4xl">
