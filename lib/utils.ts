@@ -28,3 +28,19 @@ export const formatDiscord = (value) => {
 export const formatHex = (value) => {
   return value.toUpperCase();
 };
+
+// Cek Nama (Wajib minimal 2 kata)
+export const validateRealName = (value) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "Nama wajib diisi.";
+  if (trimmed.split(/\s+/).length < 2) return "Nama tidak boleh hanya satu kata.";
+  return ""; // Valid
+};
+
+// Cek Discord (Min 2 karakter, dilarang "..")
+export const validateDiscord = (value) => {
+  if (!value) return "Discord wajib diisi.";
+  if (value.length < 2) return "Minimal 2 karakter.";
+  if (value.includes("..")) return "Tidak boleh ada dua titik berurutan (..).";
+  return ""; // Valid
+};
