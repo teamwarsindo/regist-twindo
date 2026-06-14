@@ -24,16 +24,16 @@ export default function Page() {
       <div className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-16 pt-6 sm:px-6">
         {/* Header */}
         <header className="mb-10 flex flex-col items-center text-center">
-          {/* UPDATE DI SINI: Hapus bg-card/40, kurangi padding, tambahkan overflow-hidden */}
-          <div className="glow-border mb-6 overflow-hidden rounded-2xl p-1 backdrop-blur-sm">
+          {/* 1. HAPUS padding (p-3), TAMBAH overflow-hidden agar hasil zoom tidak keluar garis */}
+          <div className="glow-border mb-6 overflow-hidden rounded-2xl backdrop-blur-sm">
             <Image
-              src="/logo.png" // Pastikan ekstensi file sesuai (png/webp)
+              src="/logo.webp" // atau .png sesuai file Kapten
               alt="Logo Team Wars Indonesia"
               width={120}
               height={120}
               priority
-              {/* UPDATE DI SINI: Tambahkan rounded-xl agar sudut putihnya melengkung halus */}
-              className="h-[120px] w-[120px] rounded-xl object-contain"
+              {/* 2. UBAH DI SINI: Tambah scale-125 untuk nge-zoom logonya */}
+              className="h-[120px] w-[120px] object-cover scale-125 transition-transform"
             />
           </div>
           <h1 className="glow-text text-balance text-3xl font-bold tracking-tight sm:text-4xl">
