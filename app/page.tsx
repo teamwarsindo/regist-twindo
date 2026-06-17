@@ -68,7 +68,6 @@ export default function Page() {
             </span>
             Under Construction
           </span>
-         </main>
         </header>
 
         {/* Hero */}
