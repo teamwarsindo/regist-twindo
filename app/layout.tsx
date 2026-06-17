@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Team Wars Indonesia S7 — Duel Links Registration',
-  description: 'Official team registration form for Team Wars Indonesia Season 7 - Duel Links.',
+  title: 'Team Wars Indonesia - Season 7',
+  description: 'Turnamen Yu-Gi-Oh! Duel Links Terbesar di Indonesia.',
 }
 
 export const viewport: Viewport = {
