@@ -2,6 +2,7 @@ import { Countdown } from "@/components/countdown"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BookOpen, CalendarClock } from "lucide-react"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 // Launch target — replace with the real tournament date.
 const LAUNCH_TARGET = new Date("2026-07-01T08:00:00+07:00").getTime()
@@ -44,6 +45,11 @@ export default function Page() {
       <div className="relative z-10 mx-auto flex min-h-svh max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-8">
         {/* Top bar */}
         <header className="flex items-center justify-between">
+         <main className="min-h-screen relative flex flex-col items-center ...">
+           {/* Tombol diletakkan absolut di pojok kanan atas */}
+           <div className="absolute top-4 right-4 z-50">
+             <ThemeToggle />
+           </div> 
           <div className="flex items-center gap-2">
             <img
               src="/favicon.ico"
@@ -61,6 +67,7 @@ export default function Page() {
             </span>
             Under Construction
           </span>
+         </main>
         </header>
 
         {/* Hero */}
