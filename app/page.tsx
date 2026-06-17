@@ -52,15 +52,7 @@ export default function Page() {
 
         {/* Hero */}
         <section className="flex flex-1 flex-col items-center justify-center py-12 text-center sm:py-16">      
-          <h1 className="font-heading text-5xl font-bold uppercase leading-[0.92] tracking-tight text-balance text-foreground sm:text-7xl md:text-8xl">
-            Team Wars
-            <span className="block text-glow text-primary">Indonesia</span>
-          </h1>
-
-          <p className="mt-4 font-heading text-xl font-semibold uppercase tracking-[0.3em] text-muted-foreground sm:text-2xl">
-            Duel Links
-          </p>
-
+      
           {/* Countdown */}
           <div className="mt-10 w-full max-w-xl">
             <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">
