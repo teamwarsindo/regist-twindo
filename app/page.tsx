@@ -1,7 +1,7 @@
 import { Countdown } from "@/components/countdown"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BookOpen, CalendarClock } from "lucide-react"
+import { BookOpen, CalendarClock, Lock } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 // Launch target — replace with the real tournament date.
@@ -34,8 +34,8 @@ export default function Page() {
       {/* Top bar */}
       <div className="relative z-10 mx-auto flex w-full max-w-2xl items-center justify-between px-4 pt-6 sm:px-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          <ShieldIcon className="h-4 w-4 text-primary" />
-          Under Construction
+          <Lock className="h-4 w-4 text-primary" />
+          Team Registration
         </div>
         <ThemeToggle />
       </div>
