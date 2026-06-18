@@ -46,7 +46,7 @@ export default function Page() {
 
         <RegistrationForm />
 
-        <footer className="mt-12 text-center text-xs text-muted-foreground">
+        <footer className="mt-auto text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Team Wars Indonesia. All rights reserved.
         </footer>
       </div>
