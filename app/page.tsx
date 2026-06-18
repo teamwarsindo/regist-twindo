@@ -34,7 +34,7 @@ export default function Page() {
         
         {/* HEADER */}
         <header className="mt-8 mb-8 flex flex-col items-center text-center lg:mb-10">
-          <div className="glow-border relative mb-4 h-[120px] w-[120px] overflow-hidden rounded-2xl sm:h-28 sm:w-28 lg:mb-8 lg:h-44 lg:w-44">
+          <div className="glow-border relative mb-6 h-[120px] w-[120px] overflow-hidden rounded-2xl sm:h-28 sm:w-28 lg:mb-8 lg:h-44 lg:w-44">
             <Image
               src="/logo.webp"
               alt="Logo Team Wars Indonesia"
