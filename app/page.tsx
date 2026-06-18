@@ -98,7 +98,7 @@ export default function Page() {
         </section>
 
         {/* Footer */}
-        <footer className="mt-auto text-center text-xs text-muted-foreground">
+        <footer className="pt-10 mt-auto text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Team Wars Indonesia. All rights reserved.
         </footer>
       </div>
