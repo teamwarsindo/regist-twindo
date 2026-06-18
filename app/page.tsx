@@ -33,7 +33,7 @@ export default function Page() {
       <div className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-4 pb-4 sm:px-6">
         
         {/* HEADER */}
-        <header className="mb-4 flex flex-col items-center text-center lg:mb-10">
+        <header className="-mt-12 mb-4 flex flex-col items-center text-center lg:mt-0 lg:mb-10">
           <div className="glow-border relative mb-4 h-20 w-20 overflow-hidden rounded-2xl sm:h-28 sm:w-28 lg:mb-8 lg:h-44 lg:w-44">
             <Image
               src="/logo.webp"
@@ -108,7 +108,7 @@ export default function Page() {
         </section>
 
         {/* FOOTER */}
-        <footer className="mt-8 text-center text-[10px] text-muted-foreground sm:mt-16 sm:text-xs">
+        <footer className="mt-auto text-center text-[10px] text-muted-foreground sm:mt-16 sm:text-xs">
           © {new Date().getFullYear()} Team Wars Indonesia. All rights reserved.
         </footer>
 
