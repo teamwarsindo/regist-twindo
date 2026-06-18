@@ -61,7 +61,7 @@ export default function Page() {
           </div>
 
           {/* CTAs */}
-          <div className="mt-5 flex w-full max-w-md flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-5 mb-8 flex w-full max-w-md flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a
               href={DISCORD_URL}
               target="_blank"
@@ -78,7 +78,7 @@ export default function Page() {
               href="/rules"
               className={cn(
                 buttonVariants({ size: "lg", variant: "outline" }),
-                "h-11 w-full gap-2 border-primary/40 bg-transparent px-6 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground sm:w-auto [&_svg:not([class*='size-'])]:size-5",
+                "h-11 w-full gap-2.5 border-primary/40 bg-transparent px-6 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground sm:w-auto [&_svg:not([class*='size-'])]:size-5",
               )}
             >
               <RulesIcon className="h-5 w-5" />
@@ -88,7 +88,7 @@ export default function Page() {
               href="#"
               className={cn(
                 buttonVariants({ size: "lg", variant: "outline" }),
-                "h-11 w-full gap-2 border-primary/40 bg-transparent px-6 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground sm:w-auto [&_svg:not([class*='size-'])]:size-5",
+                "h-11 w-full gap-2.5 border-primary/40 bg-transparent px-6 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground sm:w-auto [&_svg:not([class*='size-'])]:size-5",
               )}
             >
               <FormIcon className="h-5 w-5" />
@@ -98,7 +98,7 @@ export default function Page() {
         </section>
 
         {/* Footer */}
-        <footer className="pt-10 mt-auto text-center text-xs text-muted-foreground">
+        <footer className="pb-5 pt-4 mt-auto text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Team Wars Indonesia. All rights reserved.
         </footer>
       </div>
