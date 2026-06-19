@@ -59,21 +59,44 @@ export default function Page() {
             Season 7 — Duel Links
           </p>
           
-          {/* INFO REKENING DENGAN TOMBOL COPY */}
-          <div className="mt-8 max-w-md rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-relaxed text-muted-foreground backdrop-blur-sm sm:px-6">
-            <p>Biaya pendaftaran Rp 300.000 di transfer ke rekening BCA <span className="font-semibold text-foreground">a.n Victor Widiputra.</span>
-            </p>
-            <div className="my-2 flex items-center justify-center gap-2">
-              <span className="font-mono text-base font-bold tracking-wider text-foreground sm:text-lg">
-                {accountNumber}
-              </span>
-              <button
-                onClick={handleCopy}
-                className="flex items-center justify-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 active:scale-95"
-                title="Salin nomor rekening"
-              >
-                {isCopied ? "Tersalin! ✓" : "Salin 📋"}
-              </button>
+          {/* INFO PEMBAYARAN DENGAN GAYA INVOICE */}
+          <div className="mt-8 w-full max-w-md overflow-hidden rounded-xl border border-primary/20 bg-card shadow-lg backdrop-blur-sm">
+            {/* Bagian Atas: Nominal */}
+            <div className="border-b border-border bg-muted/30 p-5 text-center sm:p-6">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Total Pembayaran
+              </p>
+              <p className="text-3xl font-black text-foreground">
+                Rp 300.000
+              </p>
+            </div>
+
+            {/* Bagian Bawah: Detail Rekening */}
+            <div className="p-5 sm:p-6">
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Bank Tujuan</span>
+                  <span className="font-semibold text-foreground">BCA</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Atas Nama</span>
+                  <span className="font-semibold text-foreground">Victor Widiputra</span>
+                </div>
+              </div>
+
+              {/* Area Nomor Rekening & Copy Button */}
+              <div className="mt-5 flex items-center justify-between rounded-lg border border-primary/10 bg-primary/5 p-3">
+                <span className="font-mono text-lg font-bold tracking-widest text-foreground">
+                  {accountNumber}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95"
+                  title="Salin nomor rekening"
+                >
+                  {isCopied ? "Tersalin! ✓" : "Salin 📋"}
+                </button>
+              </div>
             </div>
           </div>
         </header>
