@@ -1,9 +1,25 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image"
 import { RegistrationForm } from "@/components/registration-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ShieldIcon } from "@/components/icons"
 
 export default function Page() {
+  const [isCopied, setIsCopied] = useState(false);
+  const accountNumber = "0460967538";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(accountNumber);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Gagal menyalin teks", err);
+    }
+  };
+
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-background text-foreground">
       
@@ -42,9 +58,24 @@ export default function Page() {
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary lg:mt-5">
             Season 7 — Duel Links
           </p>
-          <p className="mt-6 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-            Biaya pendaftaran Rp 300.000 di transfer ke rekening BCA 0460967538 a.n Victor Widiputra.
-          </p>
+          
+          {/* INFO REKENING DENGAN TOMBOL COPY */}
+          <div className="mt-8 max-w-md rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-relaxed text-muted-foreground backdrop-blur-sm sm:px-6">
+            <p>Biaya pendaftaran Rp 300.000 di transfer ke rekening BCA</p>
+            <div className="my-2 flex items-center justify-center gap-2">
+              <span className="font-mono text-base font-bold tracking-wider text-foreground sm:text-lg">
+                {accountNumber}
+              </span>
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 active:scale-95"
+                title="Salin nomor rekening"
+              >
+                {isCopied ? "Tersalin! ✓" : "Salin 📋"}
+              </button>
+            </div>
+            <p className="font-medium text-foreground">a.n Victor Widiputra.</p>
+          </div>
         </header>
 
         {/* AREA FORM: Dibatasi max-w-2xl agar tidak melar di layar PC yang lebar */}
