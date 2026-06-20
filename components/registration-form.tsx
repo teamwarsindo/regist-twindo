@@ -176,9 +176,10 @@ export function RegistrationForm() {
     }
 
     try {
-      const res = await fetch(SUBMIT_URL, {
+      // Sekarang kita mengarahkannya ke server internal kita sendiri
+      const res = await fetch("/api/submit", {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
       const result = await res.json()
