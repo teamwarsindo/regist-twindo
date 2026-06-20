@@ -8,7 +8,6 @@ import {
   ROSTER_ROLES,
   MIN_PLAYERS,
   MAX_PLAYERS,
-  SUBMIT_URL,
   STORAGE_KEY,
   RULEBOOK_URL,
   type Player,
@@ -157,24 +156,22 @@ export function RegistrationForm() {
     setSubmitting(true)
     setServerError(null)
 
+    // Payload sudah disesuaikan persis dengan Apps Script dan bebas dari Dead Code
     const payload = {
-      event: "Team Wars Indonesia Season 7 - Duel Links",
       email: email.trim(),
       namaTim: namaTim.trim(),
       warna: hex,
       logoTim: logo?.base64 ?? "", 
       buktiTransfer: bukti?.base64 ?? "",
-      players: players.map((p, i) => ({
-        nomor: i + 1,
+      players: players.map((p) => ({
         role: p.role,
         namaLengkap: p.namaLengkap.trim(),
         discord: p.discord.trim(),
         ign: p.ign.trim(),
         idDuelLinks: p.duelId,
       })),
-      submittedAt: new Date().toISOString(),
     }
-
+    
     try {
       // Sekarang kita mengarahkannya ke server internal kita sendiri
       const res = await fetch("/api/submit", {
