@@ -15,6 +15,18 @@ interface ReviewModalProps {
   onConfirm: () => void
 }
 
+const roleIcons: Record<string, string> = { 
+  "Ketua": "👑", 
+  "Wakil Ketua": "⭐", 
+  "Anggota": "👤" 
+}
+
+const roleColors: Record<string, string> = {
+  "Ketua": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  "Wakil Ketua": "bg-slate-300/10 text-slate-300 border-slate-300/20",
+  "Anggota": "bg-blue-500/10 text-blue-500 border-blue-500/20"
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-border py-2 last:border-0 sm:flex-row sm:justify-between sm:gap-4">
@@ -113,10 +125,28 @@ export function ReviewModal({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card px-4 py-1">
+          <div className="rounded-xl border border-border bg-card px-4 py-2">
             <Row label="Email" value={form.email} />
             <Row label="Nama Tim" value={form.namaTim} />
-            <Row label="Bukti Transfer" value={bukti ? bukti.name : "Belum diunggah"} />
+            
+            {/* Pratinjau Bukti Transfer Khusus */}
+            <div className="flex flex-col gap-2 py-3 border-t border-border">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Bukti Transfer
+              </span>
+              {bukti?.base64 ? (
+                <div className="flex flex-col gap-2">
+                  <img
+                    src={bukti.base64}
+                    alt="Pratinjau Bukti Transfer"
+                    className="max-h-40 w-auto rounded-lg border border-border object-contain bg-black/20"
+                  />
+                  <span className="text-xs text-muted-foreground truncate">{bukti.name}</span>
+                </div>
+              ) : (
+                <span className="text-sm text-foreground">Belum diunggah</span>
+              )}
+            </div>
           </div>
 
           <h3 className="mb-2 mt-5 text-sm font-semibold text-foreground">
@@ -129,8 +159,9 @@ export function ReviewModal({
                   <span className="text-sm font-medium text-foreground">
                     {i + 1}. {p.namaLengkap || "—"}
                   </span>
-                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground">
-                    {p.role}
+                  {/* Badge Role Dinamis */}
+                  <span className={`flex items-center gap-1 border px-2 py-0.5 rounded text-[11px] font-semibold ${roleColors[p.role]}`}>
+                    {roleIcons[p.role]} {p.role}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 text-xs text-muted-foreground sm:grid-cols-3">
@@ -200,7 +231,7 @@ export function ReviewModal({
             disabled={submitting}
             className="flex-[2] rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all enabled:hover:brightness-110 disabled:opacity-50"
           >
-            {submitting ? "Mengirim..." : "Konfirmasi & Kirim"}
+            {submitting ? "⏳ Mengunggah Data (Bisa memakan waktu ±10 detik)..." : "Konfirmasi & Kirim Pendaftaran"}
           </button>
         </div>
       </div>
