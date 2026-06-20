@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Inisialisasi Resend menggunakan API Key dari .env
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
@@ -22,35 +21,96 @@ export async function POST(request: Request) {
       throw new Error("Gagal menyimpan data ke Google Sheets");
     }
 
-    // 2. JIKA BERHASIL KE SHEETS, KIRIM EMAIL VIA RESEND
-    // Pastikan data form memiliki 'email' dan 'namaTim'
-    const { email, namaTim } = data; 
+    // 2. AMBIL DATA DARI PAYLOAD
+    // Sesuaikan nama variabel ini dengan data yang dikirim dari form Next.js kamu!
+    const { 
+      email, 
+      namaTim, 
+      namaKapten, 
+      noWhatsapp, 
+      linkBuktiTransfer, 
+      linkLogo 
+    } = data; 
 
+    // 3. SIAPKAN PROMISE UNTUK KIRIM BANYAK EMAIL SEKALIGUS
+    const emailPromises = [];
+
+    // --- A. Email ke Peserta ---
     if (email) {
-      await resend.emails.send({
-        from: 'Team Wars Indonesia <regist@teamwars.web.id>', // Gunakan email/domain yang sudah kamu verifikasi di Resend
-        to: email, // Email peserta yang didapat dari form
-        subject: `Pendaftaran Berhasil: Tim ${namaTim}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Halo, Tim ${namaTim}! 🎉</h2>
-            <p>Terima kasih telah mendaftar di TWI Season 7 - Duel Links.</p>
-            <p>Data pendaftaran dan bukti transfer Anda telah kami terima dan akan segera diproses oleh panitia.</p>
-            <br/>
-            <p><strong>Apa selanjutnya?</strong></p>
-            <ul>
-              <li>Pastikan seluruh anggota tim telah bergabung di server Discord kami.</li>
-              <li>Tunggu informasi selanjutnya.</li>
-            </ul>
-            <br/>
-            <p>Salam hangat,<br/>Panitia TWI Season 7</p>
-          </div>
-        `,
-      });
+      emailPromises.push(
+        resend.emails.send({
+          from: 'Teamwars Registration <regist@teamwars.web.id>',
+          to: email,
+          subject: `Pendaftaran Berhasil: Tim ${namaTim}`,
+          html: `
+            <div style="font-family: sans-serif;">
+              <h2>Halo, Tim ${namaTim}! 🎉</h2>
+              <p>Terima kasih telah mendaftar. Data dan bukti transfer Anda telah kami terima.</p>
+              <p>Tim kami akan segera memverifikasi pendaftaran Anda.</p>
+            </div>
+          `,
+        })
+      );
     }
 
-    // 3. KEMBALIKAN RESPONSE SUKSES KE FRONTEND
-    return NextResponse.json({ success: true, message: "Pendaftaran dan Email berhasil!" });
+    // --- B. Email ke Finance (Bukti Transfer) ---
+    emailPromises.push(
+      resend.emails.send({
+        from: 'System Teamwars <regist@teamwars.web.id>',
+        to: 'finance@teamwars.web.id',
+        subject: `[Verifikasi Pembayaran] Tim ${namaTim}`,
+        html: `
+          <div style="font-family: sans-serif;">
+            <h2>Pengecekan Pembayaran Baru</h2>
+            <p>Tim <strong>${namaTim}</strong> baru saja mendaftar. Mohon segera cek bukti transfer mereka.</p>
+            <p><strong>Link Bukti Transfer:</strong> <br/> <a href="${linkBuktiTransfer}">${linkBuktiTransfer}</a></p>
+          </div>
+        `,
+      })
+    );
+
+    // --- C. Email ke Creative (Logo Tim) ---
+    emailPromises.push(
+      resend.emails.send({
+        from: 'System Teamwars <regist@teamwars.web.id>',
+        to: 'creative@teamwars.web.id',
+        subject: `[Aset Logo] Tim ${namaTim}`,
+        html: `
+          <div style="font-family: sans-serif;">
+            <h2>Logo Tim Baru</h2>
+            <p>Berikut adalah aset logo untuk tim <strong>${namaTim}</strong> yang baru mendaftar.</p>
+            <p><strong>Link Logo:</strong> <br/> <a href="${linkLogo}">${linkLogo}</a></p>
+          </div>
+        `,
+      })
+    );
+
+    // --- D. Email ke Admin (Informasi Lengkap) ---
+    emailPromises.push(
+      resend.emails.send({
+        from: 'System Teamwars <regist@teamwars.web.id>',
+        to: 'admin@teamwars.web.id',
+        subject: `[Registrasi Baru] Data Lengkap Tim ${namaTim}`,
+        html: `
+          <div style="font-family: sans-serif;">
+            <h2>Data Pendaftaran Baru</h2>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px;">
+              <tr><td width="30%"><strong>Nama Tim</strong></td><td>${namaTim}</td></tr>
+              <tr><td><strong>Kapten</strong></td><td>${namaKapten}</td></tr>
+              <tr><td><strong>Email</strong></td><td>${email}</td></tr>
+              <tr><td><strong>WhatsApp</strong></td><td>${noWhatsapp}</td></tr>
+            </table>
+            <p><em>Pastikan data masuk ke Google Sheets dengan benar.</em></p>
+          </div>
+        `,
+      })
+    );
+
+    // 4. EKSEKUSI SEMUA EMAIL SECARA PARALEL
+    await Promise.all(emailPromises);
+
+    // 5. KEMBALIKAN RESPONSE SUKSES
+    return NextResponse.json({ success: true, message: "Pendaftaran dan Distribusi Email Berhasil!" });
 
   } catch (error: any) {
     console.error("API Route Error:", error);
