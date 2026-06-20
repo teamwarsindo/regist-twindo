@@ -93,7 +93,7 @@ export function validateRealName(value: string): string | undefined {
   return undefined
 }
 
-// Mesin Kompresi Gambar Cerdas (Tetap Digunakan)
+// Mesin Kompresi Gambar Cerdas (Sudah Dioptimasi untuk JPEG)
 export function compressImage(file: File, maxWidth = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -114,8 +114,9 @@ export function compressImage(file: File, maxWidth = 1200): Promise<string> {
         const ctx = canvas.getContext("2d")
         ctx?.drawImage(img, 0, 0, width, height)
         
-        const mimeType = file.type === "image/png" ? "image/png" : "image/jpeg"
-        const quality = mimeType === "image/jpeg" ? 0.85 : 0.95
+        // Memaksa konversi ke JPEG 80% agar ukuran file sangat kecil
+        const mimeType = "image/jpeg"
+        const quality = 0.80
         resolve(canvas.toDataURL(mimeType, quality))
       }
       img.onerror = (err) => reject(err)
