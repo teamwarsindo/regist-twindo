@@ -338,7 +338,7 @@ export function RegistrationForm() {
               className="mt-1 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background"
             />
             <span className="text-sm text-muted-foreground">
-              Saya mewakili tim menyatakan bahwa seluruh data yang diisi adalah benar, asli, dan valid. Kami menyetujui seluruh syarat dan ketentuan yang tertulis di dalam <a href={/rules} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Rulebook Resmi Team Wars</a>.
+              Saya mewakili tim menyatakan bahwa seluruh data yang diisi adalah benar, asli, dan valid. Kami menyetujui seluruh syarat dan ketentuan yang tertulis di dalam <a href="/rules" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Rulebook Resmi Team Wars</a>.
             </span>
           </label>
 
