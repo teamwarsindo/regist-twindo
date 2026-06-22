@@ -10,11 +10,11 @@ import { ShieldIcon, DiscordIcon, RulesIcon, FormIcon } from "@/components/icons
 
 // 1. Definisikan Waktu Buka dan Waktu Tutup
 // Waktu Buka: 1 Juli 2026, 08:00 WIB
-const LAUNCH_TARGET = new Date("2026-06-22T20:54:00+07:00").getTime()
+const LAUNCH_TARGET = new Date("2026-06-22T20:56:00+07:00").getTime()
 
 // Waktu Tutup: 14 hari (2 minggu) setelah Launch Target
 // Rumus: Waktu Buka + (14 hari * 24 jam * 60 menit * 60 detik * 1000 milidetik)
-const CLOSE_TARGET = LAUNCH_TARGET + (1 * 1 * 1 * 60 * 1000)
+const CLOSE_TARGET = LAUNCH_TARGET + (1 * 1 * 1 * 15 * 1000)
 
 // Tipe data untuk 3 fase siklus pendaftaran
 type RegistrationPhase = "PRE_LAUNCH" | "OPEN" | "CLOSED"
