@@ -1,4 +1,4 @@
-"use client" // Wajib ditambahkan agar bisa menggunakan State & Effect
+"use client"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
@@ -8,38 +8,64 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { buttonVariants } from "@/components/ui/button"
 import { ShieldIcon, DiscordIcon, RulesIcon, FormIcon } from "@/components/icons"
 
-// Launch target — menggunakan target waktu asli
-const LAUNCH_TARGET = new Date("2026-07-01T08:00:00+07:00").getTime()
+// 1. Definisikan Waktu Buka dan Waktu Tutup
+// Waktu Buka: 1 Juli 2026, 08:00 WIB
+const LAUNCH_TARGET = new Date("2026-06-22T20:37:00+07:00").getTime()
+
+// Waktu Tutup: 14 hari (2 minggu) setelah Launch Target
+// Rumus: Waktu Buka + (14 hari * 24 jam * 60 menit * 60 detik * 1000 milidetik)
+const CLOSE_TARGET = LAUNCH_TARGET + (1 * 1 * 1 * 1 * 100)
+
+// Tipe data untuk 3 fase siklus pendaftaran
+type RegistrationPhase = "PRE_LAUNCH" | "OPEN" | "CLOSED"
 
 export default function Page() {
-  // 1. State untuk mengontrol status tombol pendaftaran
-  const [isOpen, setIsOpen] = useState(false)
+  // State untuk melacak sistem sedang ada di fase mana
+  const [phase, setPhase] = useState<RegistrationPhase>("PRE_LAUNCH")
 
-  // 2. Logika Pengecekan Waktu Otomatis
   useEffect(() => {
     const checkTime = () => {
       const now = new Date().getTime()
-      setIsOpen(now >= LAUNCH_TARGET) // Akan bernilai true jika waktu sekarang sudah melewati target
+      
+      if (now < LAUNCH_TARGET) {
+        // Fase 1: Belum waktunya buka
+        setPhase("PRE_LAUNCH")
+      } else if (now >= LAUNCH_TARGET && now < CLOSE_TARGET) {
+        // Fase 2: Sudah buka, tapi belum melewati batas 2 minggu
+        setPhase("OPEN")
+      } else {
+        // Fase 3: Sudah melewati batas 2 minggu
+        setPhase("CLOSED")
+      }
     }
 
-    // Cek langsung saat halaman dimuat
+    // Cek inisial saat dimuat
     checkTime()
 
-    // Cek secara berkala setiap 1 detik
+    // Cek berkala setiap 1 detik
     const intervalId = setInterval(checkTime, 1000)
 
-    // Pembersihan memori
     return () => clearInterval(intervalId)
   }, [])
+
+  // Bantuan logika (Helper) agar kode di bawah lebih rapi
+  const isOpen = phase === "OPEN"
+  
+  // Tentukan teks di atas countdown sesuai fase
+  const getCountdownLabel = () => {
+    if (phase === "PRE_LAUNCH") return "Registration Opens In"
+    if (phase === "OPEN") return "Registration Closes In"
+    return "Registration Has Ended"
+  }
+
+  // Tentukan target countdown: Jika belum buka, hitung mundur ke waktu buka. Jika sudah buka, hitung mundur ke waktu tutup.
+  const activeTarget = phase === "PRE_LAUNCH" ? LAUNCH_TARGET : CLOSE_TARGET
 
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
       
-      {/* Ambient esports glow behind the header */}
-      <div
-        className="ambient-glow pointer-events-none absolute inset-x-0 top-0 h-[420px]"
-        aria-hidden="true"
-      />
+      {/* Ambient esports glow */}
+      <div className="ambient-glow pointer-events-none absolute inset-x-0 top-0 h-[420px]" aria-hidden="true" />
 
       {/* TOP BAR */}
       <div className="relative z-10 flex w-full items-center justify-between px-6 pt-6 lg:px-12">
@@ -77,20 +103,21 @@ export default function Page() {
           
           {/* Area Countdown */}
           <div className="w-full max-w-3xl">
-            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground sm:mb-4 sm:text-xs">
-              Battle Begins In
+            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground sm:mb-4 sm:text-xs transition-colors">
+              {getCountdownLabel()}
             </p>
-            <Countdown target={LAUNCH_TARGET} />
+            {/* Countdown disembunyikan jika pendaftaran sudah benar-benar ditutup */}
+            {phase !== "CLOSED" && (
+              <Countdown target={activeTarget} />
+            )}
           </div>
 
           {/* Area Tombol */}
           <div className="mt-8 flex w-full max-w-4xl flex-col items-center gap-2.5 lg:mt-10 lg:flex-row lg:justify-center">
             
-            {/* 1. TOMBOL REGISTRASI (Dinamis berdasarkan Countdown) */}
+            {/* 1. TOMBOL REGISTRASI (Dinamis 3 Fase) */}
             <a
-              // Jika isOpen true, arahkan ke /registration. Jika false, hapus href.
               href={isOpen ? "/registration" : undefined}
-              // Cegah klik paksa jika status masih tertutup
               onClick={(e) => {
                 if (!isOpen) e.preventDefault();
               }}
@@ -98,18 +125,18 @@ export default function Page() {
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "h-11 w-full gap-2 whitespace-nowrap px-4 sm:px-6 lg:h-12 lg:w-auto lg:gap-2.5 lg:text-base [&_svg:not([class*='size-'])]:size-4 lg:[&_svg:not([class*='size-'])]:size-5 transition-all duration-300",
-                // Warna asli (Merah)
                 "!bg-red-600 !text-white hover:!bg-red-700 shadow-[0_0_30px_-6px_rgba(220,38,38,0.5)] dark:!bg-red-600 dark:!text-white dark:hover:!bg-red-700",
-                // Jika ditutup, tambahkan efek mati (menimpa efek hover)
                 !isOpen && "opacity-50 cursor-not-allowed !pointer-events-none"
               )}
             >
               <FormIcon className="h-4 w-4 lg:h-5 lg:w-5" />
-              {/* Teks berubah otomatis */}
-              {isOpen ? "Team Registration" : "Registration Closed"}
+              {/* Teks Tombol Berubah Sesuai Fase */}
+              {phase === "PRE_LAUNCH" && "Registration Opens Soon"}
+              {phase === "OPEN" && "Team Registration"}
+              {phase === "CLOSED" && "Registration Closed"}
             </a>
 
-            {/* 2. TOMBOL DISCORD (Dikunci Biru Discord) */}
+            {/* 2. TOMBOL DISCORD */}
             <a
               href="/invite"
               className={cn(
@@ -122,7 +149,7 @@ export default function Page() {
               Join the Discord
             </a>
 
-            {/* 3. TOMBOL RULEBOOK (Dikunci Abu Gelap & Putih) */}
+            {/* 3. TOMBOL RULEBOOK */}
             <a
               href="/rules"
               className={cn(
