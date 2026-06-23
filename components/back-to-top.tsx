@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ChevronUpIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 export function BackToTop() {
@@ -28,7 +28,7 @@ export function BackToTop() {
           : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
-      <ArrowUp className="size-5" aria-hidden="true" />
+      <ChevronUpIcon className="size-5" aria-hidden="true" />
     </button>
   )
 }
