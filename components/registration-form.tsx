@@ -4,32 +4,17 @@ import { useEffect, useMemo, useState } from "react"
 import { FileDropzone } from "@/components/file-dropzone"
 import { ReviewModal } from "@/components/review-modal"
 import { TrashIcon, PlusIcon, AlertIcon, CheckIcon } from "@/components/icons"
-import {
-  ROSTER_ROLES,
-  MIN_PLAYERS,
-  MAX_PLAYERS,
-  STORAGE_KEY,
-  type Player,
-  type RosterRole,
-  type UploadedFile,
-  type FormState,
-  isValidEmail,
-  isValidHex,
-  formatDuelId,
-  isCompleteDuelId,
-  createPlayer,
-  defaultPlayers,
-  countRole,
-  assignRole,
-  findDuplicateFields,
-  sanitizeTeamName,
-  sanitizeRealName,
-  toProperCase,
-  validateRealName,
-  validateTeamName,
-  sanitizeDiscord,
-  validateDiscord,
+import { 
+  ROSTER_ROLES, MIN_PLAYERS, MAX_PLAYERS, STORAGE_KEY,
+  createPlayer, defaultPlayers, countRole, assignRole, findDuplicateFields,
+  type Player, type RosterRole, type UploadedFile, type FormState 
 } from "@/lib/registration"
+
+import { 
+  isValidEmail, isValidHex, formatDuelId, isCompleteDuelId, 
+  sanitizeTeamName, sanitizeRealName, toProperCase, 
+  validateRealName, validateTeamName, sanitizeDiscord, validateDiscord 
+} from "@/lib/validators"
 
 const inputBase = "w-full rounded-lg border bg-background/60 px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
 
