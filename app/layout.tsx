@@ -11,9 +11,31 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+import type { Metadata } from 'next'
+
+// Tambahkan kode ini sebelum function RootLayout
 export const metadata: Metadata = {
-  title: 'Team Wars Indonesia - Season 7',
-  description: 'Turnamen Yu-Gi-Oh! Duel Links Terbesar di Indonesia.',
+  // metadataBase WAJIB ADA agar Next.js tahu domain utama Anda
+  metadataBase: new URL('https://teamwars.web.id'), 
+  title: 'Team Wars Indonesia',
+  description: 'Official Website TWI Season 7 — Duel Links',
+  openGraph: {
+    title: 'Team Wars Indonesia',
+    description: 'Official Website TWI Season 7 — Duel Links',
+    url: 'https://teamwars.web.id',
+    siteName: 'Team Wars Indonesia',
+    images: [
+      {
+        // Sesuaikan dengan nama gambar PNG/JPG Anda di folder public/
+        url: '/opengraph-image.jpg', 
+        width: 1200, // Opsional, tapi disarankan
+        height: 630, // Opsional, tapi disarankan
+        alt: 'Team Wars Indonesia Logo',
+      },
+    ],
+    locale: 'id_ID',
+    type: 'website',
+  },
 }
 
 export const viewport: Viewport = {
