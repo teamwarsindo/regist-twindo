@@ -1,7 +1,7 @@
 'use client'
 
-import { ShieldCheck } from 'lucide-react'
-import { navItems } from '@/lib/rules-data'
+import { ShieldIcon } from "@/components/icons"
+  import { navItems } from '@/lib/rules-data'
 
 export function RulebookNav() {
   function handleJump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
@@ -17,7 +17,7 @@ export function RulebookNav() {
     <header className="sticky top-0 z-40 border-b border-blue-500/15 bg-slate-950/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
         <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-300/80">
-          <ShieldCheck className="size-4 text-blue-400" aria-hidden="true" />
+          <ShieldIcon className="size-4 text-blue-400" aria-hidden="true" />
           <span className="hidden sm:inline">Rulebook</span>
         </span>
         <nav
