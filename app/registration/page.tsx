@@ -6,6 +6,16 @@ import { RegistrationForm } from "@/components/registration-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 // Impor TrashIcon langsung dari komponen ikon kustom kita
 import { ShieldIcon, DiscordIcon, RulesIcon, FormIcon, TrashIcon } from "@/components/icons"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Team Wars Indonesia',
+  description: 'Official Registration - Daftarkan tim Anda sekarang.',
+  openGraph: {
+    title: 'Team Wars Indonesia',
+    description: 'Official Registration - Daftarkan tim Anda sekarang.',
+  },
+}
 
 export default function Page() {
   const [isCopied, setIsCopied] = useState(false);
