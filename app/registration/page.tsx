@@ -60,7 +60,7 @@ export default function Page() {
           </p>
           
           {/* INFO PEMBAYARAN DENGAN GAYA INVOICE */}
-          <section className="mt-8 w-full max-w-md glass glow-border rounded-2xl border p-5 sm:p-6">
+          <section className="mt-8 w-full max-w-2xl glass glow-border rounded-2xl border p-5 sm:p-6">
             
             {/* Bagian Atas: Nominal */}
             <div className="mb-5 border-b border-border pb-5 sm:mb-6 sm:pb-6">
