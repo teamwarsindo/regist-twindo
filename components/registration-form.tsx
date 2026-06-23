@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { FileDropzone } from "@/components/file-dropzone"
 import { ReviewModal } from "@/components/review-modal"
 import { TrashIcon, PlusIcon, AlertIcon, CheckIcon } from "@/components/icons"
@@ -47,6 +47,9 @@ export function RegistrationForm() {
   const [bukti, setBukti] = useState<UploadedFile | null>(null)
   const [agreedData, setAgreedData] = useState(false)
   const [agreedRules, setAgreedRules] = useState(false)
+
+  // STATE BARU UNTUK SMART PASTE
+  const [bulkText, setBulkText] = useState("")
 
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -100,6 +103,63 @@ export function RegistrationForm() {
     setPlayers((prev) => prev.length <= MIN_PLAYERS ? prev : prev.filter((p) => p.id !== id))
   }
 
+  // FUNGSI INTI SMART PASTE (BARU)
+  function handleSmartPaste() {
+    if (!bulkText.trim()) return
+
+    const lines = bulkText.split('\n')
+    const extractedData: Array<{namaLengkap: string, discord: string, ign: string, duelId: string}> = []
+
+    lines.forEach((line) => {
+      if (!line.trim()) return
+      
+      // Deteksi otomatis pemisah (Koma, Tab, atau Strip)
+      const parts = line.split(/[,\t\-]/).map(item => item.trim())
+      
+      if (parts.length > 0) {
+         extractedData.push({
+           namaLengkap: parts[0] || "",
+           discord: parts[1] || "",
+           ign: parts[2] || "",
+           // Duel ID otomatis di-format dari raw number ke format xxx-xxx-xxx
+           duelId: formatDuelId(parts[3] || ""),
+         })
+      }
+    })
+
+    if (extractedData.length === 0) return
+
+    setPlayers((prev) => {
+      const newPlayers = [...prev]
+      
+      extractedData.forEach((data, index) => {
+        if (index < newPlayers.length) {
+          // Jika barisnya sudah ada, timpa isinya (Role dipertahankan!)
+          newPlayers[index] = {
+            ...newPlayers[index],
+            namaLengkap: data.namaLengkap ? toProperCase(data.namaLengkap) : newPlayers[index].namaLengkap,
+            discord: data.discord || newPlayers[index].discord,
+            ign: data.ign || newPlayers[index].ign,
+            duelId: data.duelId || newPlayers[index].duelId,
+          }
+        } else if (newPlayers.length < MAX_PLAYERS) {
+          // Jika baris kurang, buatkan pemain baru otomatis (Default: Anggota)
+          const newP = createPlayer("Anggota")
+          newP.namaLengkap = toProperCase(data.namaLengkap)
+          newP.discord = data.discord
+          newP.ign = data.ign
+          newP.duelId = data.duelId
+          newPlayers.push(newP)
+        }
+      })
+      
+      return newPlayers
+    })
+
+    alert(`⚡ Berhasil mengekstrak ${Math.min(extractedData.length, MAX_PLAYERS)} data pemain! Jangan lupa periksa kembali Role (Ketua/Wakil) mereka.`)
+    setBulkText("") // Kosongkan kembali form
+  }
+
   const ketuaCount = countRole(players, "Ketua")
   const wakilCount = countRole(players, "Wakil Ketua")
   const rosterRuleOk = ketuaCount === 1 && wakilCount === 1
@@ -111,7 +171,6 @@ export function RegistrationForm() {
     if (!email.trim()) errs.email = "Kolom ini wajib diisi."
     else if (!isValidEmail(email)) errs.email = "Format email tidak valid."
     
-    // Tambahkan validasi tim yang baru
     const teamErr = validateTeamName(namaTim)
     if (teamErr) errs.namaTim = teamErr
     else if (!namaTim.trim()) errs.namaTim = "Kolom ini wajib diisi."
@@ -137,7 +196,7 @@ export function RegistrationForm() {
   }, [email, namaTim, hex, logo, bukti, players, duplicateFields])
 
   const hasFieldErrors = Object.keys(fieldErrors).length > 0
-const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
+  const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
   
   function err(key: string) {
     const e = fieldErrors[key]
@@ -161,7 +220,6 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
     setSubmitting(true)
     setServerError(null)
 
-    // Payload sudah disesuaikan persis dengan Apps Script dan bebas dari Dead Code
     const payload = {
       email: email.trim(),
       namaTim: namaTim.trim(),
@@ -178,7 +236,6 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
     }
     
     try {
-      // Sekarang kita mengarahkannya ke server internal kita sendiri
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,12 +298,10 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
             <div>
               <label htmlFor="hexText" className="mb-1.5 block text-sm font-medium text-foreground">Warna Identitas Tim (Hex)</label>
               <div className="flex items-center gap-3">
-                {/* Kotak warna melengkung yang presisi */}
                 <div
                   className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
                   style={{ backgroundColor: isValidHex(hex) ? hex : "#000000" }}
                 >
-                  {/* Input warna asli yang dibuat transparan agar bisa diklik */}
                   <input
                     type="color"
                     value={isValidHex(hex) ? hex : "#000000"}
@@ -285,6 +340,36 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
               </div>
             </div>
           )}
+
+          {/* ----- UI SMART PASTE MULAI DARI SINI ----- */}
+          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
+            <div className="mb-3">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                ⚡ Smart Paste (Isi Cepat)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Copy-paste data pemain dari Spreadsheet/Notepad ke sini. <br/>
+                <strong>Format:</strong> Nama Lengkap - Discord - IGN - ID Duel Links (1 Baris = 1 Pemain).
+              </p>
+            </div>
+            
+            <textarea
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder="Contoh:&#10;Seto Kaiba - kaiba#123 - BlueEyesMaster - 123456789&#10;Yugi Moto - yugi#456 - KingOfGames - 987654321"
+              className="w-full h-24 rounded-lg border border-border bg-background p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40 transition-all"
+            />
+            
+            <button
+              type="button"
+              onClick={handleSmartPaste}
+              disabled={!bulkText.trim()}
+              className="mt-3 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Ekstrak & Masukkan ke Form
+            </button>
+          </div>
+          {/* ----- BATAS UI SMART PASTE ----- */}
 
           <div className="flex flex-col gap-4">
             {players.map((p, index) => {
@@ -330,12 +415,9 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
           </button>
         </section>
 
-          {/* SECTION PERSETUJUAN (Disamakan dengan Section Roster) */}
         <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
-          {/* Pembungkus internal untuk mengatur susunan checklist agar rapi */}
           <div className="space-y-4">
             
-            {/* Checklist 1: Kebenaran Data */}
             <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
               <input 
                 type="checkbox" 
@@ -348,7 +430,6 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
               </span>
             </label>
 
-            {/* Checklist 2: Persetujuan Rulebook */}
             <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
               <input 
                 type="checkbox" 
@@ -361,13 +442,10 @@ const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
               </span>
             </label>
 
-            {/* Tombol Review */}
             <button 
               type="button" 
               onClick={handleReviewClick} 
-              // Tombol terkunci jika salah satu atau kedua checklist belum dicentang
               disabled={!agreedData || !agreedRules} 
-              // Desain tombol otomatis menyesuaikan status aktif/nonaktif
               className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:active:scale-100 mt-2"
             >
               Review Pendaftaran
