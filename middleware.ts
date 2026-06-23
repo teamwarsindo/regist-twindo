@@ -1,53 +1,65 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { LAUNCH_TARGET } from '@/lib/config'
+import { LAUNCH_TARGET, IS_RULES_OPEN } from '@/lib/config'
 
 export function middleware(request: NextRequest) {
   const now = Date.now();
   const { pathname } = request.nextUrl;
 
-  // Buka otomatis jika berjalan di Localhost (agar Anda tidak repot saat coding)
+  // Buka otomatis jika berjalan di Localhost
   if (process.env.NODE_ENV === 'development') {
     return NextResponse.next();
   }
 
-  // Jika pendaftaran BELUM BUKA
-  if (now < LAUNCH_TARGET) {
-    
-    // Targetkan hanya halaman registrasi dan API
-    if (pathname.startsWith('/registration') || pathname.startsWith('/api/submit')) {
-      
-      // Mengambil header otorisasi dari browser
-      const basicAuth = request.headers.get('authorization');
-
-      if (basicAuth) {
-        // Memecah format "Basic base64string"
-        const authValue = basicAuth.split(' ')[1];
-        
-        // Menerjemahkan Base64 kembali ke teks biasa
-        const [user, pwd] = atob(authValue).split(':');
-
-        // 🔐 KREDENSIAL ADMIN (Silakan ganti jika perlu)
-        const validUser = 'admin';
-        const validPwd = 'xR7vM2kP9zQ4wL5T';
-
-        // Jika username dan password cocok, biarkan lewat!
-        if (user === validUser && pwd === validPwd) {
-          return NextResponse.next();
-        }
+  // Fungsi pembantu sekarang dimodifikasi untuk mengecek kredensial secara dinamis
+  const checkAuth = (allowedUser: string, allowedPwd: string) => {
+    const basicAuth = request.headers.get('authorization');
+    if (basicAuth) {
+      const authValue = basicAuth.split(' ')[1];
+      const [user, pwd] = atob(authValue).split(':');
+      if (user === allowedUser && pwd === allowedPwd) {
+        return true;
       }
-
-      // Jika tidak ada header atau password salah, paksa browser memunculkan pop-up login
-      return new NextResponse('Akses Ditolak: Anda memerlukan kredensial admin untuk masuk sebelum waktu rilis.', {
-        status: 401,
-        headers: {
-          'WWW-Authenticate': 'Basic realm="Area Terbatas Panitia"',
-        },
-      });
     }
+    return false;
+  };
+
+  // ---------------------------------------------------------
+  // 1. ATURAN KHUSUS /rules (Akses Divisi Editor Rules)
+  // ---------------------------------------------------------
+  if (pathname.startsWith('/rules') && !IS_RULES_OPEN) {
+    // 🔑 KREDENSIAL KHUSUS RULES
+    const rulesUser = 'panitia';
+    const rulesPwd = 'alwayspras';
+
+    if (checkAuth(rulesUser, rulesPwd)) return NextResponse.next();
+    
+    return new NextResponse('Akses Ditolak: Halaman Rules sedang dalam tahap penyusunan.', {
+      status: 401,
+      // Pesan pop-up disesuaikan agar jelas ini untuk divisi apa
+      headers: { 'WWW-Authenticate': 'Basic realm="Area Terbatas Divisi Rules"' },
+    });
   }
 
-  // Jika waktu sudah melewati LAUNCH_TARGET, semua orang bebas lewat
+  // ---------------------------------------------------------
+  // 2. ATURAN KHUSUS /registration (Akses Master Admin)
+  // ---------------------------------------------------------
+  if (
+    (pathname.startsWith('/registration') || pathname.startsWith('/api/submit')) 
+    && now < LAUNCH_TARGET
+  ) {
+    // 🔑 KREDENSIAL MASTER ADMIN (Tetap pakai yang lama)
+    const adminUser = 'admin';
+    const adminPwd = 'xR7vM2kP9zQ4wL5T';
+
+    if (checkAuth(adminUser, adminPwd)) return NextResponse.next();
+    
+    return new NextResponse('Akses Ditolak: Registrasi belum dibuka.', {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Basic realm="Area Terbatas Master Admin"' },
+    });
+  }
+
   return NextResponse.next();
 }
 
@@ -55,6 +67,8 @@ export const config = {
   matcher: [
     '/registration', 
     '/registration/:path*', 
-    '/api/submit/:path*'
+    '/api/submit/:path*',
+    '/rules',
+    '/rules/:path*'
   ],
 }
