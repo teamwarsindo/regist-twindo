@@ -260,6 +260,7 @@ export function LinkIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   )
+}
 
 export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -276,7 +277,6 @@ export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
       <path d="m6 9 6 6 6-6" />
     </svg>
   )
-}
 }
 
 export function ChevronUpIcon(props: SVGProps<SVGSVGElement>) {
