@@ -11,8 +11,6 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
-import type { Metadata } from 'next'
-
 // Tambahkan kode ini sebelum function RootLayout
 export const metadata: Metadata = {
   // metadataBase WAJIB ADA agar Next.js tahu domain utama Anda
