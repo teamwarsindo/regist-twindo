@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useSearchParams } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import { Countdown } from "@/components/countdown"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -18,6 +19,19 @@ const CLOSE_TARGET = LAUNCH_TARGET + (1 * 1 * 1 * 15 * 1000)
 
 // Tipe data untuk 3 fase siklus pendaftaran
 type RegistrationPhase = "PRE_LAUNCH" | "OPEN" | "CLOSED"
+
+export default function LandingPage() {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'not_open') {
+      alert("Sabar ya! Registrasi belum dibuka. Tunggu hitung mundur selesai ⏳");
+      // Bisa diganti pakai komponen Toast yang lebih cantik
+    }
+  }, [searchParams])
+
+  // ... return UI landing page ...
+}
 
 export default function Page() {
   // State untuk melacak sistem sedang ada di fase mana
