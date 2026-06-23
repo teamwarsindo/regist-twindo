@@ -42,7 +42,7 @@ export default function Page() {
       <div className="relative z-10 flex w-full flex-1 flex-col items-center px-4 pb-6 pt-6 sm:px-6">
         
         {/* HEADER: Dibuat megah dengan Fluid Typography sama seperti Landing Page */}
-        <header className="mb-10 flex flex-col items-center text-center lg:mb-12">
+        <header className="mb-10 flex w-full flex-col items-center text-center lg:mb-12">
           <div className="glow-border relative mb-6 h-[120px] w-[120px] overflow-hidden rounded-2xl">
             <Image
               src="/logo.webp"
