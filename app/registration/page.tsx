@@ -60,11 +60,10 @@ export default function Page() {
           </p>
           
           {/* INFO PEMBAYARAN DENGAN GAYA INVOICE */}
-          <div className="mt-8 w-full max-w-md overflow-hidden rounded-2xl border border-primary/40 bg-card shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+          <section className="mt-8 w-full max-w-md glass glow-border rounded-2xl border p-5 sm:p-6">
             
             {/* Bagian Atas: Nominal */}
-            <div className="border-b border-border bg-muted/30 p-5 sm:p-6">
-              {/* Judul dengan garis biru persis seperti "Identitas Tim" */}
+            <div className="mb-5 border-b border-border pb-5 sm:mb-6 sm:pb-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="h-5 w-1 rounded-full bg-primary"></div>
                 <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -78,7 +77,7 @@ export default function Page() {
             </div>
 
             {/* Bagian Bawah: Detail Rekening */}
-            <div className="p-5 sm:p-6">
+            <div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Bank Tujuan</span>
@@ -104,7 +103,7 @@ export default function Page() {
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         </header>
 
         {/* AREA FORM: Dibatasi max-w-2xl agar tidak melar di layar PC yang lebar */}
