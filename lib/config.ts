@@ -1,7 +1,7 @@
 // lib/config.ts
 
 // Waktu Buka: 1 Juli 2026, 08:00 WIB (Sesuaikan format ISO 8601)
-export const LAUNCH_TARGET_DATE = "2027-07-01T07:01:26+07:00"
+export const LAUNCH_TARGET_DATE = "2026-09-01T07:01:26+07:00"
 
 export const LAUNCH_TARGET = new Date(LAUNCH_TARGET_DATE).getTime()
 
