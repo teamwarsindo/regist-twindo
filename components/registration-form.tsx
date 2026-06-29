@@ -18,13 +18,20 @@ import {
   assignRole
 } from "@/lib/registration"
 
+// 🌟 DEFINISI TIPE BARU (Solusi Type-Safe untuk TypeScript)
+type ExtendedFormState = FormState & {
+  logoTim: UploadedFile | null;
+  buktiTransfer: UploadedFile | null;
+}
+
+// 🌟 NAMED EXPORT (Agar cocok dengan import { RegistrationForm } di page-client.tsx)
 export function RegistrationForm() {
   // --- STATE MANAJEMEN ---
-  const [form, setForm] = useState<FormState>(() => {
+  const [form, setForm] = useState<ExtendedFormState>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
-        try { return JSON.parse(saved) } catch (e) { console.error(e) }
+        try { return JSON.parse(saved) as ExtendedFormState } catch (e) { console.error(e) }
       }
     }
     return {
@@ -34,7 +41,7 @@ export function RegistrationForm() {
       logoTim: null,
       buktiTransfer: null,
       players: defaultPlayers()
-    } as any
+    }
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -363,5 +370,5 @@ export function RegistrationForm() {
 
     </div>
   )
-      }
-                
+}
+            
