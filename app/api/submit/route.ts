@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    // 1. DESTRUKTURISASI DATA BARU DARI FRONTEND PAYLOAD
+    // 1. DESTRUKTURISASI DATA DARI FRONTEND PAYLOAD
     const { 
       email, 
       namaTim, 
@@ -26,16 +26,14 @@ export async function POST(request: Request) {
     const teamSlug = namaTim.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     const kvKey = `teams:${teamSlug}`;
 
-    // 2. VALIDASI VERCEL KV: CEK APAKAH TIM SUDAH TERDAFTAR DI DATABASE
-    const isTeamExist = await kv.exists(kvKey);
-    if (isTeamExist) {
-      return NextResponse.json({ 
-        success: false, 
-        message: `Nama tim "${namaTim}" sudah terdaftar di database. Silakan gunakan nama tim lain.` 
-      }, { status: 400 });
-    }
+    // ===================================================================
+    // ATURAN UPLOAD DISESUAIKAN: 
+    // Membuang pengecekan 'kv.exists' agar sejalan dengan proteksi Cloudinary.
+    // Jika Cloudinary berhasil lolos (artinya nama tim belum ada/belum duplikat),
+    // maka data di KV di bawah ini akan langsung ditulis/disimpan dengan aman.
+    // ===================================================================
 
-    // 3. SIMPAN DATA KE VERCEL KV
+    // 2. SIMPAN/TULIS DATA KE VERCEL KV
     // A. Simpan data detail tim ke dalam Hash
     await kv.hset(kvKey, {
       namaTim: namaTim.trim(),
@@ -45,21 +43,20 @@ export async function POST(request: Request) {
       buktiTransfer: JSON.stringify(buktiTransfer),
       players: JSON.stringify(players),
       createdAt: new Date().toISOString(),
-      statusVerifikasi: "Pending" // Status awal untuk diproses Finance/Admin
+      statusVerifikasi: "Pending"
     });
 
-    // B. Masukkan slug tim ke dalam Global Set agar bisa dilist di halaman pendaftaran/peserta
+    // B. Masukkan slug tim ke dalam Global Set
     await kv.sadd("global:teams", teamSlug);
 
-
-    // 4. IDENTIFIKASI JABATAN UNTUK EMAIL
+    // 3. IDENTIFIKASI JABATAN UNTUK EMAIL
     const ketua = players.find((p: any) => p.role === "Ketua") || { namaLengkap: "-", discord: "-", idDuelLinks: "-" };
     const wakil = players.find((p: any) => p.role === "Wakil Ketua") || { namaLengkap: "-", discord: "-", idDuelLinks: "-" };
 
-    // 5. SIAPKAN DISTRIBUSI EMAIL VIA RESEND
+    // 4. SIAPKAN DISTRIBUSI EMAIL VIA RESEND
     const emailPromises = [];
 
-    // --- A. Email ke Peserta (Konfirmasi Pendaftaran) ---
+    // --- A. Email ke Peserta ---
     if (email) {
       emailPromises.push(
         resend.emails.send({
@@ -82,7 +79,7 @@ export async function POST(request: Request) {
     // --- B. Email ke Finance (Menerima URL Bukti Transfer FULL SIZE) ---
     emailPromises.push(
       resend.emails.send({
-        from: 'Teamwars Registration <regist@teamwars.web.id>',
+        from: 'System Teamwars <regist@teamwars.web.id>',
         to: 'finance@teamwars.web.id',
         subject: `[Verifikasi Pembayaran] Tim ${namaTim}`,
         html: `
@@ -100,7 +97,7 @@ export async function POST(request: Request) {
     // --- C. Email ke Creative (Menerima URL Logo FULL SIZE) ---
     emailPromises.push(
       resend.emails.send({
-        from: 'Teamwars Registration <regist@teamwars.web.id>',
+        from: 'System Teamwars <regist@teamwars.web.id>',
         to: 'creative@teamwars.web.id',
         subject: `[Aset Logo] Tim ${namaTim}`,
         html: `
@@ -115,10 +112,10 @@ export async function POST(request: Request) {
       })
     );
 
-    // --- D. Email ke Admin (Informasi Ringkasan & Roster Lengkap) ---
+    // --- D. Email ke Admin ---
     emailPromises.push(
       resend.emails.send({
-        from: 'Teamwars Registration <regist@teamwars.web.id>',
+        from: 'System Teamwars <regist@teamwars.web.id>',
         to: 'admin@teamwars.web.id',
         subject: `[Registrasi Baru] Data Lengkap Tim ${namaTim}`,
         html: `
@@ -163,11 +160,10 @@ export async function POST(request: Request) {
       })
     );
 
-    // 6. EKSEKUSI SEMUA EMAIL SECARA PARALEL
+    // 5. EKSEKUSI SEMUA EMAIL
     await Promise.all(emailPromises);
 
-    // 7. KEMBALIKAN RESPONSE SUKSES
-    return NextResponse.json({ success: true, message: "Pendaftaran berhasil disimpan ke KV dan email terdistribusi!" });
+    return NextResponse.json({ success: true, message: "Pendaftaran berhasil diproses!" });
 
   } catch (error: any) {
     console.error("API Route Error:", error);
