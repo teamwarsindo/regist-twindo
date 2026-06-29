@@ -34,7 +34,7 @@ export function RegistrationForm() {
       logoTim: null,
       buktiTransfer: null,
       players: defaultPlayers()
-    } as FormState & { logoTim: UploadedFile | null; buktiTransfer: UploadedFile | null }
+    } as any
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
