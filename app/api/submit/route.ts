@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { kv } from '@vercel/kv';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -17,11 +18,45 @@ export async function POST(request: Request) {
       players        // Array objek berisi data roster lengkap
     } = data; 
 
-    // Cari tahu siapa Ketua & Wakil Ketua untuk kebutuhan visual Email Admin
+    if (!namaTim) {
+      return NextResponse.json({ success: false, message: "Nama tim tidak boleh kosong." }, { status: 400 });
+    }
+
+    // Standardisasi slug/kunci untuk database (contoh: "Akatsuki Team" -> "akatsuki-team")
+    const teamSlug = namaTim.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+    const kvKey = `teams:${teamSlug}`;
+
+    // 2. VALIDASI VERCEL KV: CEK APAKAH TIM SUDAH TERDAFTAR DI DATABASE
+    const isTeamExist = await kv.exists(kvKey);
+    if (isTeamExist) {
+      return NextResponse.json({ 
+        success: false, 
+        message: `Nama tim "${namaTim}" sudah terdaftar di database. Silakan gunakan nama tim lain.` 
+      }, { status: 400 });
+    }
+
+    // 3. SIMPAN DATA KE VERCEL KV
+    // A. Simpan data detail tim ke dalam Hash
+    await kv.hset(kvKey, {
+      namaTim: namaTim.trim(),
+      warna: warna,
+      email: email.trim(),
+      logoTim: JSON.stringify(logoTim),
+      buktiTransfer: JSON.stringify(buktiTransfer),
+      players: JSON.stringify(players),
+      createdAt: new Date().toISOString(),
+      statusVerifikasi: "Pending" // Status awal untuk diproses Finance/Admin
+    });
+
+    // B. Masukkan slug tim ke dalam Global Set agar bisa dilist di halaman pendaftaran/peserta
+    await kv.sadd("global:teams", teamSlug);
+
+
+    // 4. IDENTIFIKASI JABATAN UNTUK EMAIL
     const ketua = players.find((p: any) => p.role === "Ketua") || { namaLengkap: "-", discord: "-", idDuelLinks: "-" };
     const wakil = players.find((p: any) => p.role === "Wakil Ketua") || { namaLengkap: "-", discord: "-", idDuelLinks: "-" };
 
-    // 2. SIAPKAN PROMISE UNTUK KIRIM BANYAK EMAIL SEKALIGUS VIA RESEND
+    // 5. SIAPKAN DISTRIBUSI EMAIL VIA RESEND
     const emailPromises = [];
 
     // --- A. Email ke Peserta (Konfirmasi Pendaftaran) ---
@@ -34,7 +69,7 @@ export async function POST(request: Request) {
           html: `
             <div style="font-family: sans-serif; max-width: 600px; line-height: 1.6;">
               <h2 style="color: ${warna || '#3b82f6'};">Halo, Tim ${namaTim}! 🎉</h2>
-              <p>Terima kasih telah mendaftar di <strong>TWI Season 7</strong>. Data roster dan bukti transfer Anda telah kami terima di sistem.</p>
+              <p>Terima kasih telah mendaftar di <strong>TWI Season 7</strong>. Data roster dan bukti transfer Anda telah kami terima di sistem dan tersimpan di database.</p>
               <p>Tim admin & finance kami akan segera melakukan proses verifikasi dokumen. Harap pastikan akun Discord <strong>${ketua.discord}</strong> tetap aktif untuk koordinasi lebih lanjut.</p>
               <br/>
               <p style="font-size: 12px; color: #666;">Maju terus dan persiapkan strategi terbaik tim Anda!</p>
@@ -47,7 +82,7 @@ export async function POST(request: Request) {
     // --- B. Email ke Finance (Menerima URL Bukti Transfer FULL SIZE) ---
     emailPromises.push(
       resend.emails.send({
-        from: 'System Teamwars <regist@teamwars.web.id>',
+        from: 'Teamwars Registration <regist@teamwars.web.id>',
         to: 'finance@teamwars.web.id',
         subject: `[Verifikasi Pembayaran] Tim ${namaTim}`,
         html: `
@@ -65,7 +100,7 @@ export async function POST(request: Request) {
     // --- C. Email ke Creative (Menerima URL Logo FULL SIZE) ---
     emailPromises.push(
       resend.emails.send({
-        from: 'System Teamwars <regist@teamwars.web.id>',
+        from: 'Teamwars Registration <regist@teamwars.web.id>',
         to: 'creative@teamwars.web.id',
         subject: `[Aset Logo] Tim ${namaTim}`,
         html: `
@@ -83,7 +118,7 @@ export async function POST(request: Request) {
     // --- D. Email ke Admin (Informasi Ringkasan & Roster Lengkap) ---
     emailPromises.push(
       resend.emails.send({
-        from: 'System Teamwars <regist@teamwars.web.id>',
+        from: 'Teamwars Registration <regist@teamwars.web.id>',
         to: 'admin@teamwars.web.id',
         subject: `[Registrasi Baru] Data Lengkap Tim ${namaTim}`,
         html: `
@@ -95,6 +130,7 @@ export async function POST(request: Request) {
               <tr><td><strong>Email Kontak</strong></td><td>${email}</td></tr>
               <tr><td><strong>Ketua Tim (Discord)</strong></td><td>${ketua.namaLengkap} (${ketua.discord})</td></tr>
               <tr><td><strong>Wakil Ketua (Discord)</strong></td><td>${wakil.namaLengkap} (${wakil.discord})</td></tr>
+              <tr><td><strong>KV Database Key</strong></td><td><code>${kvKey}</code></td></tr>
             </table>
 
             <h3>📋 Roster Lengkap Pemain</h3>
@@ -127,11 +163,11 @@ export async function POST(request: Request) {
       })
     );
 
-    // 3. EKSEKUSI SEMUA EMAIL SECARA PARALEL
+    // 6. EKSEKUSI SEMUA EMAIL SECARA PARALEL
     await Promise.all(emailPromises);
 
-    // 4. KEMBALIKAN RESPONSE SUKSES
-    return NextResponse.json({ success: true, message: "Pendaftaran dan Distribusi Email Berhasil!" });
+    // 7. KEMBALIKAN RESPONSE SUKSES
+    return NextResponse.json({ success: true, message: "Pendaftaran berhasil disimpan ke KV dan email terdistribusi!" });
 
   } catch (error: any) {
     console.error("API Route Error:", error);
