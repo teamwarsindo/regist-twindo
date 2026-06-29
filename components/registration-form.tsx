@@ -232,7 +232,7 @@ export function RegistrationForm() {
   }
 
   // ===================================================================
-  // REVISI HELPER: VALIDASI MAKSIMAL 10MB & TANPA TIMESTAMP
+  // REVISI FINAL HELPER: LIMIT AKOMODASI 10MB ASLI (15MB BASE64) & CLEAN URL
   // ===================================================================
   async function uploadKeCloudinary(
     base64Data: string, 
@@ -240,17 +240,16 @@ export function RegistrationForm() {
     teamName: string
   ): Promise<string> {
     
-    // 1. VALIDASI UKURAN FILE MAKSIMAL 10MB (10 * 1024 * 1024 bytes)
-    // Menghitung estimasi ukuran asli dari string Base64
+    // 1. AKOMODASI FILE 10MB: Batas dinaikkan ke 15MB untuk toleransi pembengkakan Base64
     const stringLength = base64Data.length - (base64Data.indexOf(',') + 1);
     const sizeInBytes = (stringLength * (3 / 4)) - (base64Data.endsWith('==') ? 2 : base64Data.endsWith('=') ? 1 : 0);
-    const maxSizeInBytes = 10 * 1024 * 1024; // 10 Megabytes
+    const maxSizeInBytes = 15 * 1024 * 1024; // 15 Megabytes (Aman untuk file asli hingga 10.5MB)
 
     if (sizeInBytes > maxSizeInBytes) {
-      throw new Error(`Ukuran file ${type === "logo" ? "Logo" : "Bukti Transfer"} terlalu besar! Maksimal ukuran file adalah 10MB.`);
+      throw new Error(`Ukuran file ${type === "logo" ? "Logo" : "Bukti Transfer"} terlalu besar! Sistem membatasi file maksimal 10MB asli.`);
     }
 
-    // 2. PROSES PENAMAAN FILE CLEAN URL
+    // 2. PROSES PENAMAAN FILE CLEAN URL (ANTI-DUPLIKAT)
     const cleanTeamName = teamName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     const customFileName = cleanTeamName; 
     const folderPath = type === "logo" ? "logo" : "bukti_transfer";
@@ -285,14 +284,14 @@ export function RegistrationForm() {
     })
 
     if (!res.ok) {
-      // Jika error karena nama file duplikat (karena overwrite: false)
+      // Menangani penolakan otomatis akibat nama tim/file kembar di Cloudinary (overwrite: false)
       throw new Error(`Nama tim "${teamName}" kemungkinan sudah terdaftar atau file gagal diunggah.`);
     }
 
     const data = await res.json()
     return data.secure_url
   }
-  
+
   // ==========================================
   // CORE LOGIC: HANDLESUBMIT TO CLOUDINARY & VERCEL KV
   // ==========================================
