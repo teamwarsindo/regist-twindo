@@ -27,7 +27,7 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (modalOpen) {
+    if (isConfirmTrashOpen) {
       // Kunci scroll body saat modal buka
       document.body.style.overflow = "hidden";
     } else {
@@ -39,7 +39,7 @@ export default function Page() {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [modalOpen]);
+  }, [isConfirmTrashOpen]);
   
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-background text-foreground">
