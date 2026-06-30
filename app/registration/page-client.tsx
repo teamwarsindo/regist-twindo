@@ -25,6 +25,21 @@ export default function Page() {
   const handleClearStorage = () => {
     setIsConfirmTrashOpen(true);
   };
+
+  useEffect(() => {
+    if (modalOpen) {
+      // Kunci scroll body saat modal buka
+      document.body.style.overflow = "hidden";
+    } else {
+      // Kembalikan seperti semula saat modal tutup
+      document.body.style.overflow = "unset";
+    }
+  
+    // Cleanup function saat komponen di-unmount
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [modalOpen]);
   
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-background text-foreground">
