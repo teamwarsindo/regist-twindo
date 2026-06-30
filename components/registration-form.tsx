@@ -416,23 +416,23 @@ export function RegistrationForm() {
             <div>
               <label htmlFor="hexText" className="mb-1.5 block text-sm font-medium text-foreground">Warna Identitas Tim (Hex)</label>
               <div className="flex items-center gap-3">
-                <div
-                  className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
-                  style={{ backgroundColor: isValidHex(hex) ? hex : "#00BFFF" }}
-                >
-                  <input
-                    type="color"
-                    value={isValidHex(hex) ? hex : "#00BFFF"}
-                    placeholder="#00BFFF"
-                    onChange={(e) => setHex(e.target.value)}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  />
+                {/* Color Picker */}
+                <div className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
+                  // Jika hex kosong/invalid, tampilkan warna default (misal hitam) agar picker tidak crash
+                  style={{ backgroundColor: isValidHex(hex) ? hex : "#00BFFF" }} >
+                  <input type="color" value={isValidHex(hex) ? hex : "#00BFFF"} onChange={(e) => setHex(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                 </div>
                 
-                <input id="hexText" type="text" value={hex} onChange={(e) => setHex(`#${e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6)}`)} onBlur={() => markTouched("hex")} className={`${inputBase} font-mono ${err("hex") ? "border-destructive" : "border-border"}`} />
-              </div>
+                {/* Text Input dengan Placeholder */}
+                <input id="hexText" type="text" placeholder="#00BFFF" value={hex} onChange={(e) => {
+                  const input = e.target.value if (input === "") { setHex("") return }
+                  // Bersihkan input: hapus semua #, hapus karakter non-hex, batasi 6 karakter
+                  const cleanHex = input.replace(/#/g, "").replace(/[^0-9a-fA-F]/g, "").slice(0, 6) setHex("#" + cleanHex)}}
+                  onBlur={() => markTouched("hex")}
+                  className={`${inputBase} font-mono ${err("hex") ? "border-destructive" : "border-border"}`} />
+                </div>
               <ErrorText msg={err("hex")} />
-            </div>
+              </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FileDropzone id="logo" label="Logo Tim" value={logo} onChange={(f) => { setLogo(f); markTouched("logo") }} error={err("logo")} />
               <FileDropzone id="bukti" label="Bukti Transfer" value={bukti} onChange={(f) => { setBukti(f); markTouched("bukti") }} error={err("bukti")} />
