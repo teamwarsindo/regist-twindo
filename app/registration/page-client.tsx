@@ -105,7 +105,7 @@ export default function Page() {
       <div className="relative z-10 flex w-full flex-1 flex-col items-center px-4 pb-6 pt-6 sm:px-6">
         
         {/* HEADER */}
-        <header className="mb-4 flex w-full flex-col items-center text-center lg:mb-4">
+        <header className="mb-8 flex w-full flex-col items-center text-center lg:mb-4">
           <div className="glow-border relative mb-6 h-[120px] w-[120px] overflow-hidden rounded-2xl">
             <Image
               src="/logo.webp"
