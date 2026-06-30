@@ -300,34 +300,40 @@ export function RegistrationForm() {
     setServerError(null)
 
     try {
-      // 1. Upload Logo & Dapatkan URL Ori
+      // 1. Upload Logo & Dapatkan URL Ori dari Cloudinary
       let logoUrlOriginal = ""
       if (logo?.base64) {
         logoUrlOriginal = await uploadKeCloudinary(logo.base64, "logo", namaTim)
       }
 
-      // 2. Upload Bukti Transfer & Dapatkan URL Ori
+      // 2. Upload Bukti Transfer & Dapatkan URL Ori dari Cloudinary
       let buktiUrlOriginal = ""
       if (bukti?.base64) {
         buktiUrlOriginal = await uploadKeCloudinary(bukti.base64, "bukti", namaTim)
       }
 
-      // 3. Buat URL versi transformasi kompresi tinggi secara on-the-fly
-      const logoUrlCompressed = logoUrlOriginal.replace("/upload/", "/upload/f_auto,q_auto/");
-      const buktiUrlCompressed = buktiUrlOriginal.replace("/upload/", "/upload/f_auto,q_auto/");
+      // === TAMBAHKAN HELPER DISINI UNTUK MENGAMBIL NAMA FILE AKHIR ===
+      // Fungsi ini mengambil bagian paling belakang URL (contoh: "admin-twi.jpg")
+      const getFileName = (url: string) => url.split('/').pop() || '';
+      const namaFileLogo = getFileName(logoUrlOriginal);
+      const namaFileBukti = getFileName(buktiUrlOriginal);
 
-      // 4. Susun payload ringan berisi Teks dan Tautan Gambar pendek
+      // 3. Susun payload ringan menggunakan format URL MASKING rapi
       const payload = {
         email: email.trim(),
         namaTim: namaTim.trim(),
         warna: hex,
         logoTim: {
-          original: logoUrlOriginal,
-          compressed: logoUrlCompressed
+          // Otomatis berubah menjadi: /logo/nama-tim.png
+          original: `/logo/${namaFileLogo}`, 
+          // Otomatis berubah menjadi: /thumb-logo/nama-tim.png
+          compressed: `/thumb-logo/${namaFileLogo}` 
         },
         buktiTransfer: {
-          original: buktiUrlOriginal,
-          compressed: buktiUrlCompressed
+          // Otomatis berubah menjadi: /bukti/nama-tim.png
+          original: `/bukti/${namaFileBukti}`,
+          // Otomatis berubah menjadi: /thumb-bukti/nama-tim.png
+          compressed: `/thumb-bukti/${namaFileBukti}`
         },
         players: players.map((p) => ({
           role: p.role,
@@ -335,11 +341,11 @@ export function RegistrationForm() {
           discord: p.discord.trim(),
           ign: p.ign.trim(),
           idDuelLinks: p.duelId,
-         })),
+        })),
         createdAt: new Date().toISOString()
       }
       
-      // 5. Kirim payload ke API Route backend penyimpan Vercel KV
+      // 4. Kirim payload ke API Route backend penyimpan Vercel KV
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -363,7 +369,7 @@ export function RegistrationForm() {
       setServerError(error.message || "Gagal memproses pendaftaran. Periksa koneksi internet Anda.")
     }
   }
-
+  
   // Komponen UI saat sukses berhasil register
   if (success) {
     return (
