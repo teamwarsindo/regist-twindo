@@ -93,7 +93,7 @@ export function ReviewModal({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 id="review-title" className="text-lg font-semibold text-foreground">
-            Tinjau Data Tim
+            Ringkasan Pendaftaran
           </h2>
           <button
             type="button"
@@ -231,7 +231,7 @@ export function ReviewModal({
             disabled={submitting}
             className="flex-[2] rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all enabled:hover:brightness-110 disabled:opacity-50"
           >
-            {submitting ? "⏳ Mengunggah Data (Bisa memakan waktu ±10 detik)..." : "Konfirmasi & Kirim Pendaftaran"}
+            {submitting ? "⏳ Menyimpan Data..." : "Kirim Pendaftaran"}
           </button>
         </div>
       </div>
