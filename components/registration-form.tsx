@@ -1,367 +1,564 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { FileDropzone } from "@/components/file-dropzone"
-import { CloseIcon, LoaderIcon } from "@/components/icons"
+import { ReviewModal } from "@/components/review-modal"
+import { TrashIcon, PlusIcon, AlertIcon, CheckIcon } from "@/components/icons"
 import { 
-  MAX_FILE_SIZE, 
-  MIN_PLAYERS, 
-  MAX_PLAYERS, 
-  STORAGE_KEY,
-  ROSTER_ROLES,
-  type FormState, 
-  type Player, 
-  type UploadedFile,
-  defaultPlayers,
-  findDuplicateFields,
-  createPlayer,
-  assignRole
+  ROSTER_ROLES, MIN_PLAYERS, MAX_PLAYERS, STORAGE_KEY,
+  createPlayer, defaultPlayers, countRole, assignRole, findDuplicateFields,
+  type Player, type RosterRole, type UploadedFile, type FormState 
 } from "@/lib/registration"
 
+import { 
+  isValidEmail, isValidHex, formatDuelId, isCompleteDuelId, 
+  sanitizeTeamName, sanitizeRealName, toProperCase, 
+  validateRealName, validateTeamName, sanitizeDiscord, validateDiscord 
+} from "@/lib/validators"
+
+const inputBase = "w-full rounded-lg border bg-background/60 px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function ErrorText({ msg }: { msg?: string }) {
+  if (!msg) return null
+  return <p className="mt-1 text-xs font-medium text-destructive">{msg}</p>
+}
+
 export function RegistrationForm() {
-  // --- STATE MANAJEMEN ---
-  const [form, setForm] = useState<FormState>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try { return JSON.parse(saved) } catch (e) { console.error(e) }
-      }
-    }
-    return {
-      email: "",
-      namaTim: "",
-      hex: "#3b82f6", // Default biru
-      logoTim: null,
-      buktiTransfer: null,
-      players: defaultPlayers()
-    } as any
-  })
+  const [email, setEmail] = useState("")
+  const [namaTim, setNamaTim] = useState("")
+  const [hex, setHex] = useState("#3b82f6")
+  const [players, setPlayers] = useState<Player[]>(defaultPlayers)
+  const [logo, setLogo] = useState<UploadedFile | null>(null)
+  const [bukti, setBukti] = useState<UploadedFile | null>(null)
+  
+  // State Persetujuan
+  const [agreedData, setAgreedData] = useState(false)
+  const [agreedRules, setAgreedRules] = useState(false)
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [isZoomed, setIsZoomed] = useState(false) // State untuk zoom bukti transfer
+  // State untuk Smart Paste
+  const [bulkText, setBulkText] = useState("")
 
-  // --- PERSISTENSI DRAFT ---
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(form))
-  }, [form])
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false)
 
-  // --- LOCK BACKGROUND SCROLL ---
-  useEffect(() => {
-    if (isPreviewOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-    }
-  }, [isPreviewOpen])
-
-  // --- LOGIKA PENCARIAN KETUA & WAKIL (NAMA ASLI) ---
-  const namaKetua = form.players.find((p) => p.role === "Ketua")?.namaLengkap || "-"
-  const namaWakil = form.players.find((p) => p.role === "Wakil Ketua")?.namaLengkap || "-"
-
-  // --- VALIDASI FORM ---
-  function validateForm(): boolean {
-    const newErrors: Record<string, string> = {}
-    
-    if (!form.email.trim()) newErrors.email = "Email wajib diisi."
-    if (!form.namaTim.trim()) newErrors.namaTim = "Nama tim wajib diisi."
-    if (!form.logoTim) newErrors.logoTim = "Logo tim wajib diunggah."
-    if (!form.buktiTransfer) newErrors.buktiTransfer = "Bukti transfer wajib diunggah."
-
-    // Validasi Roster
-    form.players.forEach((p, idx) => {
-      if (!p.namaLengkap.trim()) newErrors[`p-${p.id}-nama`] = `Nama lengkap pemain #${idx + 1} wajib diisi.`
-      if (!p.discord.trim()) newErrors[`p-${p.id}-discord`] = `Discord ID pemain #${idx + 1} wajib diisi.`
-      if (!p.ign.trim()) newErrors[`p-${p.id}-ign`] = `IGN pemain #${idx + 1} wajib diisi.`
-      if (!p.duelId.trim()) newErrors[`p-${p.id}-duelId`] = `Duel ID pemain #${idx + 1} wajib diisi.`
-    })
-
-    // Validasi Duplikat Lokal
-    const duplicates = findDuplicateFields(form.players)
-    duplicates.forEach((key) => {
-      newErrors[key] = "Data ini terdeteksi ganda di dalam roster Anda."
-    })
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  function markTouched(key: string) {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }))
   }
 
-  function handleOpenPreview(e: React.FormEvent) {
-    e.preventDefault()
-    if (validateForm()) {
-      setIsPreviewOpen(true)
-    } else {
-      const firstError = Object.keys(errors)[0]
-      document.getElementById(firstError)?.scrollIntoView({ behavior: "smooth", block: "center" })
-    }
-  }
-
-  // --- SUBMIT FINAL KE BACKEND ---
-  async function handleFinalSubmit() {
-    setIsSubmitting(true)
+  // Load Draft dari Local Storage
+  useEffect(() => {
     try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        alert(data.error || "Terjadi kesalahan saat mendaftar.")
-        return
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const data = JSON.parse(raw) as Partial<FormState>
+        if (typeof data.email === "string") setEmail(data.email)
+        if (typeof data.namaTim === "string") setNamaTim(data.namaTim)
+        if (typeof data.hex === "string") setHex(data.hex)
+        if (Array.isArray(data.players) && data.players.length >= MIN_PLAYERS) {
+          setPlayers(data.players)
+        }
       }
+    } catch {}
+    setIsDraftLoaded(true)
+  }, [])
 
-      alert("Pendaftaran Berhasil! Tim Anda telah tercatat.")
-      localStorage.removeItem(STORAGE_KEY)
-      window.location.reload()
-    } catch (err) {
-      console.error(err)
-      alert("Gagal terhubung ke server. Hubungi panitia jika masalah berlanjut.")
-    } finally {
-      setIsSubmitting(false)
-      setIsPreviewOpen(false)
-    }
+  // Save Draft ke Local Storage
+  useEffect(() => {
+    if (!isDraftLoaded) return
+    const draft: FormState = { email, namaTim, hex, players }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
+    } catch {}
+  }, [email, namaTim, hex, players, isDraftLoaded])
+
+  function updatePlayer(id: string, patch: Partial<Player>) {
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)))
   }
 
-  // --- UTIRITAS MANAJEMEN ROSTER ---
-  function updatePlayer(id: string, fields: Partial<Player>) {
-    setForm({
-      ...form,
-      players: form.players.map((p) => (p.id === id ? { ...p, ...fields } : p))
-    })
+  function changeRole(id: string, role: RosterRole) {
+    setPlayers((prev) => assignRole(prev, id, role))
   }
 
   function addPlayer() {
-    if (form.players.length >= MAX_PLAYERS) return
-    setForm({ ...form, players: [...form.players, createPlayer("Anggota")] })
+    setPlayers((prev) => prev.length >= MAX_PLAYERS ? prev : [...prev, createPlayer("Anggota")])
   }
 
   function removePlayer(id: string) {
-    if (form.players.length <= MIN_PLAYERS) return
-    setForm({ ...form, players: form.players.filter((p) => p.id !== id) })
+    setPlayers((prev) => prev.length <= MIN_PLAYERS ? prev : prev.filter((p) => p.id !== id))
+  }
+
+  // FUNGSI INTI SMART PASTE (VERSI ULTRA FLEKSIBEL + INSTANT VALIDATION)
+  function handleSmartPaste() {
+    if (!bulkText.trim()) return
+
+    const lines = bulkText.split('\n')
+    const extractedData: Array<{namaLengkap: string, discord: string, ign: string, duelId: string}> = []
+
+    lines.forEach((line) => {
+      if (!line.trim()) return
+      
+      let cleanedLine = line.trim()
+      
+      // 1. Ekstrak Duel ID lebih dulu dari bagian paling belakang
+      const duelIdMatch = cleanedLine.match(/[\d\s-]{8,}$/)
+      let duelId = ""
+      
+      if (duelIdMatch) {
+        duelId = duelIdMatch[0].replace(/[\s-]/g, "")
+        cleanedLine = cleanedLine.slice(0, duelIdMatch.index).trim()
+        cleanedLine = cleanedLine.replace(/[,\t\/|-]+$/, "").trim()
+      }
+
+      // 2. Pecah sisa teks dengan multi-pemisah dan multi-spasi cerdas
+      const parts = cleanedLine
+        .split(/\s*\t\s*|\s*\|\s*|\s*,\s*|\s*\/\s*|\s+-\s+|-/)
+        .map(item => item.trim())
+        .filter(Boolean)
+
+      if (parts.length > 0 || duelId) {
+         extractedData.push({
+           namaLengkap: parts[0] || "",
+           discord: parts[1] || "",
+           ign: parts[2] || "",
+           duelId: duelId ? formatDuelId(duelId) : formatDuelId(parts[3] || ""),
+         })
+      }
+    })
+
+    if (extractedData.length === 0) return
+
+    // 3. Persiapkan pencatatan `touched` agar error langsung muncul jika tidak valid
+    const newTouched: Record<string, boolean> = {}
+    const newPlayers = [...players]
+
+    extractedData.forEach((data, index) => {
+      let playerId = ""
+
+      if (index < newPlayers.length) {
+        newPlayers[index] = {
+          ...newPlayers[index],
+          namaLengkap: data.namaLengkap ? toProperCase(data.namaLengkap) : newPlayers[index].namaLengkap,
+          discord: data.discord || newPlayers[index].discord,
+          ign: data.ign || newPlayers[index].ign,
+          duelId: data.duelId || newPlayers[index].duelId,
+        }
+        playerId = newPlayers[index].id
+      } else if (newPlayers.length < MAX_PLAYERS) {
+        const newP = createPlayer("Anggota")
+        newP.namaLengkap = toProperCase(data.namaLengkap)
+        newP.discord = data.discord
+        newP.ign = data.ign
+        newP.duelId = data.duelId
+        newPlayers.push(newP)
+        playerId = newP.id
+      }
+
+      // Tandai kolom pemain ini sebagai "tersentuh"
+      if (playerId) {
+        newTouched[`${playerId}-namaLengkap`] = true
+        newTouched[`${playerId}-discord`] = true
+        newTouched[`${playerId}-ign`] = true
+        newTouched[`${playerId}-duelId`] = true
+      }
+    })
+
+    // 4. Update data form dan status touched secara bersamaan
+    setPlayers(newPlayers)
+    setTouchedFields((prev) => ({ ...prev, ...newTouched }))
+
+    alert(`⚡ Berhasil mengekstrak ${Math.min(extractedData.length, MAX_PLAYERS)} data pemain! Perhatikan kotak berwarna merah jika ada data yang tidak sesuai format.`)
+    setBulkText("") 
+  }
+
+  const ketuaCount = countRole(players, "Ketua")
+  const wakilCount = countRole(players, "Wakil Ketua")
+  const rosterRuleOk = ketuaCount === 1 && wakilCount === 1
+
+  const duplicateFields = useMemo(() => findDuplicateFields(players), [players])
+
+  const fieldErrors = useMemo(() => {
+    const errs: Record<string, string> = {}
+    if (!email.trim()) errs.email = "Kolom ini wajib diisi."
+    else if (!isValidEmail(email)) errs.email = "Format email tidak valid."
+    
+    const teamErr = validateTeamName(namaTim)
+    if (teamErr) errs.namaTim = teamErr
+    else if (!namaTim.trim()) errs.namaTim = "Kolom ini wajib diisi."
+    
+    if (!isValidHex(hex)) errs.hex = "Format hex tidak valid (#RRGGBB)."
+    if (!logo) errs.logo = "Logo tim wajib diunggah."
+    if (!bukti) errs.bukti = "Bukti transfer wajib diunggah."
+
+    players.forEach((p) => {
+      const nameErr = validateRealName(p.namaLengkap)
+      if (nameErr) errs[`${p.id}-namaLengkap`] = nameErr
+
+      const discordErr = validateDiscord(p.discord)
+      if (discordErr) errs[`${p.id}-discord`] = discordErr
+
+      if (!p.ign.trim()) errs[`${p.id}-ign`] = "Kolom ini wajib diisi."
+      if (!p.duelId.trim()) errs[`${p.id}-duelId`] = "Kolom ini wajib diisi."
+      else if (!isCompleteDuelId(p.duelId)) errs[`${p.id}-duelId`] = "ID harus berformat xxx-xxx-xxx."
+    })
+
+    duplicateFields.forEach((key) => { errs[key] = "Data ganda dalam tim" })
+    return errs
+  }, [email, namaTim, hex, logo, bukti, players, duplicateFields])
+
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0
+  const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
+  
+  function err(key: string) {
+    const e = fieldErrors[key]
+    if (!e) return undefined
+    if (duplicateFields.has(key)) return e
+    if (submitAttempted || touchedFields[key]) return e
+    return undefined
+  }
+
+  function handleReviewClick() {
+    setSubmitAttempted(true)
+    if (!canSubmit) {
+      document.getElementById("registration-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      return
+    }
+    setServerError(null)
+    setModalOpen(true)
+  }
+
+  // ===================================================================
+  // REVISI FINAL HELPER: LIMIT AKOMODASI 10MB ASLI (15MB BASE64) & CLEAN URL
+  // ===================================================================
+  async function uploadKeCloudinary(
+    base64Data: string, 
+    type: "logo" | "bukti", 
+    teamName: string
+  ): Promise<string> {
+    
+    // 1. AKOMODASI FILE 10MB: Batas dinaikkan ke 15MB untuk toleransi pembengkakan Base64
+    const stringLength = base64Data.length - (base64Data.indexOf(',') + 1);
+    const sizeInBytes = (stringLength * (3 / 4)) - (base64Data.endsWith('==') ? 2 : base64Data.endsWith('=') ? 1 : 0);
+    const maxSizeInBytes = 15 * 1024 * 1024; // 15 Megabytes (Aman untuk file asli hingga 10.5MB)
+
+    if (sizeInBytes > maxSizeInBytes) {
+      throw new Error(`Ukuran file ${type === "logo" ? "Logo" : "Bukti Transfer"} terlalu besar! Sistem membatasi file maksimal 10MB asli.`);
+    }
+
+    // 2. PROSES PENAMAAN FILE CLEAN URL (ANTI-DUPLIKAT)
+    const cleanTeamName = teamName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+    const customFileName = cleanTeamName; 
+    const folderPath = type === "logo" ? "logo" : "bukti_transfer";
+
+    // Rekonstruksi Base64 menjadi file binary asli yang bernama kustom
+    const parts = base64Data.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || "image/png";
+    const binaryStr = atob(parts[1]);
+    let len = binaryStr.length;
+    const u8arr = new Uint8Array(len);
+    
+    while (len--) {
+      u8arr[len] = binaryStr.charCodeAt(len);
+    }
+    
+    const extension = mime.split('/')[1] || 'png';
+    const namedFile = new File([u8arr], `${customFileName}.${extension}`, { type: mime });
+
+    const formData = new FormData()
+    formData.append("file", namedFile) 
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "preset_twis7")
+    formData.append("folder", folderPath)
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    if (!cloudName) {
+      throw new Error("Konfigurasi Cloud Name belum di-set di Vercel Environment Variables.")
+    }
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!res.ok) {
+      // Menangani penolakan otomatis akibat nama tim/file kembar di Cloudinary (overwrite: false)
+      throw new Error(`Nama tim "${teamName}" kemungkinan sudah terdaftar atau file gagal diunggah.`);
+    }
+
+    const data = await res.json()
+    return data.secure_url
+  }
+
+  // ==========================================
+  // CORE LOGIC: HANDLESUBMIT TO CLOUDINARY & VERCEL KV
+  // ==========================================
+  async function handleSubmit() {
+    setSubmitting(true)
+    setServerError(null)
+
+    try {
+      // 1. Upload Logo & Dapatkan URL Ori
+      let logoUrlOriginal = ""
+      if (logo?.base64) {
+        logoUrlOriginal = await uploadKeCloudinary(logo.base64, "logo", namaTim)
+      }
+
+      // 2. Upload Bukti Transfer & Dapatkan URL Ori
+      let buktiUrlOriginal = ""
+      if (bukti?.base64) {
+        buktiUrlOriginal = await uploadKeCloudinary(bukti.base64, "bukti", namaTim)
+      }
+
+      // 3. Buat URL versi transformasi kompresi tinggi secara on-the-fly
+      const logoUrlCompressed = logoUrlOriginal.replace("/upload/", "/upload/f_auto,q_auto/");
+      const buktiUrlCompressed = buktiUrlOriginal.replace("/upload/", "/upload/f_auto,q_auto/");
+
+      // 4. Susun payload ringan berisi Teks dan Tautan Gambar pendek
+      const payload = {
+        email: email.trim(),
+        namaTim: namaTim.trim(),
+        warna: hex,
+        logoTim: {
+          original: logoUrlOriginal,
+          compressed: logoUrlCompressed
+        },
+        buktiTransfer: {
+          original: buktiUrlOriginal,
+          compressed: buktiUrlCompressed
+        },
+        players: players.map((p) => ({
+          role: p.role,
+          namaLengkap: p.namaLengkap.trim(),
+          discord: p.discord.trim(),
+          ign: p.ign.trim(),
+          idDuelLinks: p.duelId,
+         })),
+        createdAt: new Date().toISOString()
+      }
+      
+      // 5. Kirim payload ke API Route backend penyimpan Vercel KV
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      
+      const result = await res.json()
+
+      if (!res.ok || result.status === "error") {
+        setSubmitting(false)
+        setServerError(result.message || "Terjadi kesalahan saat menyimpan ke Database KV.")
+        return
+      }
+
+      try { localStorage.removeItem(STORAGE_KEY) } catch {}
+      setSubmitting(false)
+      setModalOpen(false)
+      setSuccess(true)
+    } catch (error: any) {
+      setSubmitting(false)
+      setServerError(error.message || "Gagal memproses pendaftaran. Periksa koneksi internet Anda.")
+    }
+  }
+
+  // Komponen UI saat sukses berhasil register
+  if (success) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <div className="glow-border mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
+          <CheckIcon className="h-10 w-10 text-primary-foreground" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">Pendaftaran Berhasil!</h2>
+        <p className="mt-2 max-w-md text-pretty text-muted-foreground">
+          Tim <span className="font-semibold text-foreground">{namaTim}</span> telah berhasil didaftarkan.
+        </p>
+      </div>
+    )
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <form onSubmit={handleOpenPreview} className="space-y-8">
-        {/* SECTION 1: IDENTITAS TIM */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-bold text-foreground">Identitas Tim</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+    <>
+      <form id="registration-form" onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-6">
+        
+        <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-8 w-1 rounded-full bg-primary" aria-hidden="true" />
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">Email Kontak</label>
-              <input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
-              {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
+              <h2 className="text-base font-semibold text-foreground">Identitas Tim</h2>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">Email Aktif Perwakilan</label>
+              <input id="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); markTouched("email"); }} onBlur={() => markTouched("email")} className={`${inputBase} ${err("email") ? "border-destructive" : "border-border"}`} />
+              <ErrorText msg={err("email")} />
             </div>
             <div>
               <label htmlFor="namaTim" className="mb-1.5 block text-sm font-medium text-foreground">Nama Tim</label>
-              <input id="namaTim" type="text" value={form.namaTim} onChange={(e) => setForm({ ...form, namaTim: e.target.value })} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
-              {errors.namaTim && <p className="mt-1 text-xs text-destructive">{errors.namaTim}</p>}
+              <input id="namaTim" type="text" value={namaTim} onChange={(e) => setNamaTim(sanitizeTeamName(e.target.value))} onBlur={() => markTouched("namaTim")} className={`${inputBase} ${err("namaTim") ? "border-destructive" : "border-border"}`} />
+              <ErrorText msg={err("namaTim")} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Warna Identitas Tim</label>
+              <label htmlFor="hexText" className="mb-1.5 block text-sm font-medium text-foreground">Warna Identitas Tim (Hex)</label>
               <div className="flex items-center gap-3">
-                <input type="color" value={form.hex} onChange={(e) => setForm({ ...form, hex: e.target.value })} className="h-10 w-16 cursor-pointer rounded-lg border border-border bg-transparent p-0" />
-                <span className="text-sm font-mono text-muted-foreground uppercase">{form.hex}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 2: BERKAS MEDIA */}
-        <div className="grid gap-6 sm:grid-cols-2">
-          <FileDropzone id="logoTim" label="Logo Tim" value={form.logoTim} onChange={(file) => setForm({ ...form, logoTim: file })} error={errors.logoTim} hint="PNG / JPG, Maks 10MB (Akan diupload original)" />
-          <FileDropzone id="buktiTransfer" label="Bukti Transfer (Rp 50.000)" value={form.buktiTransfer} onChange={(file) => setForm({ ...form, buktiTransfer: file })} error={errors.buktiTransfer} hint="Format gambar murni, Maks 10MB" />
-        </div>
-
-        {/* SECTION 3: ROSTER PEMAIN */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground">Roster Pemain ({form.players.length})</h2>
-            <p className="text-xs text-muted-foreground">Minimal {MIN_PLAYERS}, Maksimal {MAX_PLAYERS}</p>
-          </div>
-          
-          <div className="space-y-6">
-            {form.players.map((player, index) => (
-              <div key={player.id} className="relative rounded-xl border border-border bg-background/50 p-4 pt-8 sm:pt-4">
-                <div className="absolute left-4 top-3 flex items-center gap-2 sm:static sm:mb-3">
-                  <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
-                  <select value={player.role} onChange={(e) => setForm({ ...form, players: assignRole(form.players, player.id, e.target.value as any) })} className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground">
-                    {ROSTER_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
-                  </select>
-                </div>
-
-                {form.players.length > MIN_PLAYERS && (
-                  <button type="button" onClick={() => removePlayer(player.id)} className="absolute right-3 top-3 text-muted-foreground hover:text-destructive">
-                    <CloseIcon className="h-4 w-4" />
-                  </button>
-                )}
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <input type="text" placeholder="Nama Lengkap" value={player.namaLengkap} onChange={(e) => updatePlayer(player.id, { namaLengkap: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
-                  <input type="text" placeholder="Discord ID" value={player.discord} onChange={(e) => updatePlayer(player.id, { discord: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
-                  <input type="text" placeholder="In-Game Name" value={player.ign} onChange={(e) => updatePlayer(player.id, { ign: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
-                  <input type="text" placeholder="Duel ID (e.g. 123-456-789)" value={player.duelId} onChange={(e) => updatePlayer(player.id, { duelId: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {form.players.length < MAX_PLAYERS && (
-            <button type="button" onClick={addPlayer} className="mt-4 w-full rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary">
-              + Tambah Pemain Cadangan
-            </button>
-          )}
-        </div>
-
-        <button type="submit" className="w-full rounded-xl bg-primary py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90">
-          Lanjut ke Preview
-        </button>
-      </form>
-
-      {/* ========================================================= */}
-      {/* 🌟 MODAL POP-UP: PREVIEW PENDAFTARAN (DISCORD EMBED STYLE) */}
-      {/* ========================================================= */}
-      {isPreviewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
-            
-            {/* Header Modal */}
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <h2 className="text-lg font-bold text-foreground">Preview Pendaftaran</h2>
-              <button type="button" onClick={() => setIsPreviewOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
-                <CloseIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Konten Scroll Modal */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              
-              {/* Desain Sejajar: Logo + Nama Tim + Cepat Info Pemimpin */}
-              <div className="flex items-center gap-4 border-b border-border pb-4">
-                {form.logoTim?.base64 && (
-                  <img 
-                    src={form.logoTim.base64} 
-                    alt="Preview Logo" 
-                    className="h-16 w-16 shrink-0 rounded-xl border-2 object-cover bg-background"
-                    style={{ borderColor: form.hex }}
+                <div
+                  className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
+                  style={{ backgroundColor: isValidHex(hex) ? hex : "#000000" }}
+                >
+                  <input
+                    type="color"
+                    value={isValidHex(hex) ? hex : "#000000"}
+                    onChange={(e) => setHex(e.target.value)}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   />
-                )}
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-xl font-black text-foreground uppercase tracking-tight">{form.namaTim || "NAMA TIM"}</h3>
-                  <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:gap-4">
-                    <p>👑 <span className="font-semibold text-foreground">Ketua:</span> {namaKetua}</p>
-                    <p>👥 <span className="font-semibold text-foreground">Wakil:</span> {namaWakil}</p>
+                </div>
+                
+                <input id="hexText" type="text" value={hex} onChange={(e) => setHex(`#${e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6)}`)} onBlur={() => markTouched("hex")} className={`${inputBase} font-mono ${err("hex") ? "border-destructive" : "border-border"}`} />
+              </div>
+              <ErrorText msg={err("hex")} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FileDropzone id="logo" label="Logo Tim" value={logo} onChange={(f) => { setLogo(f); markTouched("logo") }} error={err("logo")} />
+              <FileDropzone id="bukti" label="Bukti Transfer" value={bukti} onChange={(f) => { setBukti(f); markTouched("bukti") }} error={err("bukti")} />
+            </div>
+          </div>
+        </section>
+
+        <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-1 rounded-full bg-primary" aria-hidden="true" />
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Roster Pemain</h2>
+              </div>
+            </div>
+          </div>
+
+          {!rosterRuleOk && (
+            <div role="alert" className="mb-4 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive">
+              <AlertIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold">Komposisi roster tidak valid</p>
+                <p>Wajib memiliki tepat 1 Ketua dan 1 Wakil Ketua.</p>
+              </div>
+            </div>
+          )}
+
+          {/* AREA SMART PASTE */}
+          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
+            <div className="mb-3">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                ⚡ Smart Paste (Isi Cepat)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Copy-paste data pemain dari Spreadsheet/Notepad ke sini. <br/>
+                <strong>Format:</strong> Nama - Discord - IGN - ID Duel Links (Gunakan koma/strip/garis miring sebagai pemisah).
+              </p>
+            </div>
+            
+            <textarea
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder="Contoh:&#10;Seto Kaiba / kaiba / BlueEyesMaster / 123-456-789&#10;Yugi Moto, yugi, KingOfGames, 987654321"
+              className="w-full h-24 rounded-lg border border-border bg-background p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40 transition-all"
+            />
+            
+            <button
+              type="button"
+              onClick={handleSmartPaste}
+              disabled={!bulkText.trim()}
+              className="mt-3 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Ekstrak & Masukkan ke Form
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {players.map((p, index) => {
+              const canDelete = players.length > MIN_PLAYERS
+              return (
+                <div key={p.id} className="rounded-xl border border-border bg-background/40 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{index + 1}</span>
+                      <select value={p.role} onChange={(e) => changeRole(p.id, e.target.value as RosterRole)} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground outline-none focus:border-primary">
+                        {ROSTER_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <button type="button" onClick={() => removePlayer(p.id)} disabled={!canDelete} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30">
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <input type="text" value={p.namaLengkap} onChange={(e) => updatePlayer(p.id, { namaLengkap: sanitizeRealName(e.target.value) })} onBlur={(e) => { updatePlayer(p.id, { namaLengkap: toProperCase(e.target.value) }); markTouched(`${p.id}-namaLengkap`) }} placeholder="Nama Lengkap" className={`${inputBase} ${err(`${p.id}-namaLengkap`) ? "border-destructive" : "border-border"}`} />
+                      <ErrorText msg={err(`${p.id}-namaLengkap`)} />
+                    </div>
+                    <div>
+                      <input type="text" value={p.discord} onChange={(e) => updatePlayer(p.id, { discord: sanitizeDiscord(e.target.value) })} onBlur={() => markTouched(`${p.id}-discord`)} placeholder="Discord Username" className={`${inputBase} ${err(`${p.id}-discord`) ? "border-destructive" : "border-border"}`} />
+                      <ErrorText msg={err(`${p.id}-discord`)} />
+                    </div>
+                    <div>
+                      <input type="text" value={p.ign} onChange={(e) => updatePlayer(p.id, { ign: e.target.value })} onBlur={() => markTouched(`${p.id}-ign`)} placeholder="In-Game Name (IGN)" className={`${inputBase} ${err(`${p.id}-ign`) ? "border-destructive" : "border-border"}`} />
+                      <ErrorText msg={err(`${p.id}-ign`)} />
+                    </div>
+                    <div>
+                      <input type="text" inputMode="numeric" value={p.duelId} onChange={(e) => updatePlayer(p.id, { duelId: formatDuelId(e.target.value) })} onBlur={() => markTouched(`${p.id}-duelId`)} placeholder="ID Duel Links" className={`${inputBase} font-mono ${err(`${p.id}-duelId`) ? "border-destructive" : "border-border"}`} />
+                      <ErrorText msg={err(`${p.id}-duelId`)} />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Kartu Informasi Utama Berbentuk Gaya Discord Embed */}
-              <div 
-                className="rounded-xl border border-border bg-background/40 p-4 shadow-inner space-y-4"
-                style={{ borderLeft: `6px solid ${form.hex}` }}
-              >
-                <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-0.5">EMAIL KONTAK</span>
-                  <p className="text-sm font-medium text-foreground">{form.email}</p>
-                </div>
-
-                {/* Box Bukti Transfer yang Fleksibel & Responsif */}
-                <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">BUKTI TRANSFER</span>
-                  {form.buktiTransfer?.base64 ? (
-                    <div>
-                      <div 
-                        role="button"
-                        onClick={() => setIsZoomed(true)}
-                        className="group relative inline-flex h-auto max-h-[320px] w-full max-w-sm cursor-zoom-in items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 transition-colors hover:bg-muted"
-                      >
-                        <img 
-                          src={form.buktiTransfer.base64} 
-                          alt="Bukti Transfer" 
-                          className="h-auto max-h-[320px] max-w-full object-contain"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-                          <span className="rounded-md bg-black/60 px-2.5 py-1 text-xs text-white">Klik untuk memperbesar</span>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground truncate">{form.buktiTransfer.name}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-destructive">Belum ada file bukti transfer.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tinjauan Roster Pemain */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Roster Terdaftar ({form.players.length} Pemain)</span>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {form.players.map((p, idx) => (
-                    <div key={p.id} className="rounded-xl border border-border bg-background/50 p-3 flex flex-col justify-between">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="truncate text-sm font-bold text-foreground">{idx + 1}. {p.namaLengkap}</p>
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                          p.role === "Ketua" ? "bg-amber-500/10 text-amber-500" : p.role === "Wakil Ketua" ? "bg-sky-500/10 text-sky-500" : "bg-muted text-muted-foreground"
-                        }`}>{p.role}</span>
-                      </div>
-                      <div className="text-xs font-mono text-muted-foreground space-y-0.5 bg-background/30 p-2 rounded-lg border border-border/50">
-                        <p className="truncate">👾 IGN: <span className="text-foreground font-sans font-medium">{p.ign}</span></p>
-                        <p className="truncate">🆔 ID: <span className="text-foreground">{p.duelId}</span></p>
-                        <p className="truncate">💬 DC: <span className="text-foreground font-sans">{p.discord}</span></p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer Modal: Tombol Aksi */}
-            <div className="flex items-center justify-end gap-3 border-t border-border bg-muted/40 p-4">
-              <button type="button" disabled={isSubmitting} onClick={() => setIsPreviewOpen(false)} className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50">
-                Kembali
-              </button>
-              <button type="button" disabled={isSubmitting} onClick={handleFinalSubmit} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50">
-                {isSubmitting ? (
-                  <>
-                    <LoaderIcon className="h-4 w-4 animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  "Kirim Pendaftaran"
-                )}
-              </button>
-            </div>
-
+              )
+            })}
           </div>
-        </div>
-      )}
 
-      {/* ========================================================= */}
-      {/* 🌟 LIGHTBOX: VIEW FULLSCREEN BUKTI TRANSFER */}
-      {/* ========================================================= */}
-      {isZoomed && form.buktiTransfer?.base64 && (
-        <div 
-          role="button"
-          onClick={() => setIsZoomed(false)}
-          className="fixed inset-0 z-[100] flex cursor-zoom-out items-center justify-center bg-black/90 p-4 backdrop-blur-sm transition-opacity"
-        >
-          <img 
-            src={form.buktiTransfer.base64} 
-            alt="Bukti Transfer Berukuran Penuh" 
-            className="max-h-[92vh] max-w-[92vw] object-contain rounded-md shadow-2xl animate-scale-up"
-          />
-        </div>
-      )}
+          <button type="button" onClick={addPlayer} disabled={players.length >= MAX_PLAYERS} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-sm font-medium text-foreground hover:border-primary/60 hover:bg-primary/5 hover:text-primary disabled:opacity-40">
+            <PlusIcon className="h-5 w-5" /> Tambah Pemain
+          </button>
+        </section>
 
-    </div>
+        <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+              <input 
+                type="checkbox" 
+                checked={agreedData} 
+                onChange={(e) => setAgreedData(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background"
+              />
+              <span className="text-sm text-muted-foreground">
+                Saya mewakili tim menyatakan bahwa seluruh data yang diisi adalah benar, asli, dan valid.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+              <input 
+                type="checkbox" 
+                checked={agreedRules} 
+                onChange={(e) => setAgreedRules(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background"
+              />
+              <span className="text-sm text-muted-foreground">
+                Saya mewakili tim menyetujui seluruh syarat dan ketentuan yang tertulis di dalam <a href="/rules" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Rulebook TWI Season 7</a>.
+              </span>
+            </label>
+
+            <button 
+              type="button" 
+              onClick={handleReviewClick} 
+              disabled={!agreedData || !agreedRules} 
+              className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:active:scale-100 mt-2"
+            >
+              Review Pendaftaran
+            </button>
+          </div>
+        </section>
+      </form>
+
+      <ReviewModal open={modalOpen} onClose={() => setModalOpen(false)} form={{ email, namaTim, hex, players }} logo={logo} bukti={bukti} submitting={submitting} serverError={serverError} onConfirm={handleSubmit} />
+    </>
   )
-      }
-                
+}
