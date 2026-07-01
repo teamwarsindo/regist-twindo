@@ -39,7 +39,6 @@ export default function Page() {
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
       
-      {/* Ambient esports glow */}
       <div className="ambient-glow pointer-events-none absolute inset-x-0 top-0 h-[420px]" aria-hidden="true" />
 
       {/* TOP BAR */}
@@ -91,10 +90,10 @@ export default function Page() {
         </div>
       )}
 
-      {/* MAIN CONTENT WRAPPER - Menyamakan struktur dengan page utama */}
+      {/* MAIN CONTENT WRAPPER */}
       <div className="relative z-10 flex w-full flex-1 flex-col items-center px-4 pb-4 sm:px-6">
         
-        {/* HEADER - Ukuran dan spacing disamakan dengan page.tsx */}
+        {/* HEADER */}
         <header className="mt-6 mb-8 flex flex-col items-center text-center lg:mb-10">
           <div className="glow-border relative mb-6 h-[120px] w-[120px] overflow-hidden rounded-2xl sm:h-28 sm:w-28 lg:mb-8 lg:h-44 lg:w-44">
             <Image
@@ -109,8 +108,9 @@ export default function Page() {
             TEAM WARS INDONESIA
           </h1>
           
+          {/* Deskripsi Baru yang Dipersingkat */}
           <p className="mt-4 max-w-xl text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Team Wars Indonesia (TWI) merupakan kompetisi komunitas yang menjadi wadah utama bagi para duelist untuk menguji strategi dan kemampuan terbaik mereka. Dengan sejarah penyelenggaraan yang konsisten, TWI berkomitmen untuk terus menghadirkan ekosistem kompetitif yang sehat, inklusif, dan suportif bagi seluruh pemain di Indonesia.
+            Team Wars Indonesia (TWI) adalah wadah kompetisi Yu-Gi-Oh! bagi para duelist tanah air. Kami menghadirkan turnamen rutin untuk format Duel Links dan Master Duel dalam ekosistem yang suportif dan kompetitif.
           </p>
           
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary sm:py-1.5 sm:text-sm lg:mt-6">
@@ -118,7 +118,7 @@ export default function Page() {
           </p>
         </header>
 
-        {/* SECTION KONTEN - Menggunakan max-w-4xl untuk konsistensi lebar */}
+        {/* SECTION KONTEN */}
         <section className="flex w-full max-w-4xl flex-col items-center">
           
           {/* INFO PEMBAYARAN */}
