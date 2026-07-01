@@ -7,6 +7,13 @@ export function isValidEmail(value: string): boolean {
 export function isValidHex(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim())
 }
+export function sanitizeHex(value: string): string {
+  if (!value) return ""
+  // Bersihkan karakter non-hex dan langsung paksa uppercase
+  const cleanHex = value.replace(/#/g, "").replace(/[^0-9a-fA-F]/g, "").slice(0, 6)
+  return "#" + cleanHex.toUpperCase()
+}
+
 
 // --- ID DUEL LINKS ---
 export function formatDuelId(value: string): string {
