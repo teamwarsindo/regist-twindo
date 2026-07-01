@@ -138,6 +138,8 @@ export default function Page() {
             {/* 1. TOMBOL REGISTRASI (Dinamis 3 Fase) */}
             <a
               href={isOpen ? "/registration" : undefined}
+              target={isOpen ? "_blank" : undefined} // Ditambahkan
+              rel={isOpen ? "noopener noreferrer" : undefined} // Ditambahkan
               onClick={(e) => {
                 if (!isOpen) e.preventDefault();
               }}
@@ -159,6 +161,8 @@ export default function Page() {
             {/* 2. TOMBOL DISCORD */}
             <a
               href="/invite"
+              target="_blank" // Ditambahkan
+              rel="noopener noreferrer" // Ditambahkan
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "h-11 w-full gap-2 whitespace-nowrap px-4 sm:px-6 lg:h-12 lg:w-auto lg:gap-2.5 lg:text-base [&_svg:not([class*='size-'])]:size-4 lg:[&_svg:not([class*='size-'])]:size-5",
@@ -172,6 +176,8 @@ export default function Page() {
             {/* 3. TOMBOL RULEBOOK */}
             <a
               href="/rules"
+              target="_blank" // Ditambahkan
+              rel="noopener noreferrer" // Ditambahkan
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "h-11 w-full gap-2 whitespace-nowrap px-4 sm:px-6 lg:h-12 lg:w-auto lg:gap-2.5 lg:text-base [&_svg:not([class*='size-'])]:size-4 lg:[&_svg:not([class*='size-'])]:size-5",
