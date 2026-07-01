@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image"
 import { RegistrationForm } from "@/components/registration-form"
 import { ThemeToggle } from "@/components/theme-toggle"
-// Impor TrashIcon langsung dari komponen ikon kustom kita
-import { ShieldIcon, DiscordIcon, RulesIcon, FormIcon, TrashIcon } from "@/components/icons"
+import { ShieldIcon, TrashIcon } from "@/components/icons"
 
 export default function Page() {
   const [isCopied, setIsCopied] = useState(false);
@@ -28,14 +27,10 @@ export default function Page() {
 
   useEffect(() => {
     if (isConfirmTrashOpen) {
-      // Kunci scroll body saat modal buka
       document.body.style.overflow = "hidden";
     } else {
-      // Kembalikan seperti semula saat modal tutup
       document.body.style.overflow = "unset";
     }
-  
-    // Cleanup function saat komponen di-unmount
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -57,7 +52,6 @@ export default function Page() {
           Official Registration
         </div>
         
-        {/* Kontainer Tombol Aksi */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -65,7 +59,6 @@ export default function Page() {
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
             title="Hapus data tersimpan & reset form"
           >
-            {/* Menggunakan ikon kustom manual */}
             <TrashIcon className="h-5 w-5" />
           </button>
           <ThemeToggle />
@@ -115,17 +108,22 @@ export default function Page() {
               className="scale-[1.01] object-cover" 
             />
           </div>
+          
           <h1 className="glow-text text-balance text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-[clamp(3rem,4vw,4.5rem)] lg:leading-[1.1]">
             TEAM WARS INDONESIA
           </h1>
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary lg:mt-5">
+
+          {/* Deskripsi Narasi TWI */}
+          <p className="mt-4 max-w-xl text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Team Wars Indonesia (TWI) merupakan kompetisi komunitas yang menjadi wadah utama bagi para duelist untuk menguji strategi dan kemampuan terbaik mereka. Dengan sejarah penyelenggaraan yang konsisten, TWI berkomitmen untuk terus menghadirkan ekosistem kompetitif yang sehat, inklusif, dan suportif bagi seluruh pemain di Indonesia.
+          </p>
+
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Season 7 — Duel Links
           </p>
           
-          {/* INFO PEMBAYARAN DENGAN GAYA INVOICE */}
+          {/* INFO PEMBAYARAN */}
           <section className="mt-8 w-full max-w-2xl glass glow-border rounded-2xl border p-5 sm:p-6">
-            
-            {/* Bagian Atas: Nominal */}
             <div className="mb-5 border-b border-border pb-5 sm:mb-6 sm:pb-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="h-5 w-1 rounded-full bg-primary"></div>
@@ -133,13 +131,11 @@ export default function Page() {
                   Total Pembayaran
                 </p>
               </div>
-              
               <p className="text-3xl font-black text-foreground">
                 Rp 300.000
               </p>
             </div>
 
-            {/* Bagian Bawah: Detail Rekening */}
             <div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
@@ -152,7 +148,6 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Area Nomor Rekening & Copy Button */}
               <div className="mt-5 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 p-3">
                 <span className="font-mono text-lg font-bold tracking-widest text-foreground">
                   {accountNumber}
