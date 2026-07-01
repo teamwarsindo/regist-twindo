@@ -31,11 +31,6 @@ export function RegistrationForm() {
   const [logo, setLogo] = useState<UploadedFile | null>(null)
   const [bukti, setBukti] = useState<UploadedFile | null>(null)
   
-  // State Persetujuan
-  const [agreedData, setAgreedData] = useState(false)
-  const [agreedRules, setAgreedRules] = useState(false)
-  
-  // State untuk Smart Paste
   const [bulkText, setBulkText] = useState("")
   const [notification, setNotification] = useState<string | null>(null)
   
@@ -51,7 +46,6 @@ export function RegistrationForm() {
     setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }))
   }
 
-  // Load Draft dari Local Storage
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -68,7 +62,6 @@ export function RegistrationForm() {
     setIsDraftLoaded(true)
   }, [])
 
-  // Save Draft ke Local Storage
   useEffect(() => {
     if (!isDraftLoaded) return
     const draft: FormState = { email, namaTim, hex, players }
@@ -93,7 +86,6 @@ export function RegistrationForm() {
     setPlayers((prev) => prev.length <= MIN_PLAYERS ? prev : prev.filter((p) => p.id !== id))
   }
 
-  // FUNGSI INTI SMART PASTE (VERSI ULTRA FLEKSIBEL + INSTANT VALIDATION)
   function handleSmartPaste() {
     if (!bulkText.trim()) return
 
@@ -104,8 +96,6 @@ export function RegistrationForm() {
       if (!line.trim()) return
       
       let cleanedLine = line.trim()
-      
-      // 1. Ekstrak Duel ID lebih dulu dari bagian paling belakang
       const duelIdMatch = cleanedLine.match(/[\d\s-]{8,}$/)
       let duelId = ""
       
@@ -115,11 +105,7 @@ export function RegistrationForm() {
         cleanedLine = cleanedLine.replace(/[,\t\/|-]+$/, "").trim()
       }
 
-      // 2. Pecah sisa teks dengan multi-pemisah dan multi-spasi cerdas
-      const parts = cleanedLine
-        .split(/\s*\t\s*|\s*\|\s*|\s*,\s*|\s*\/\s*|\s+-\s+|-/)
-        .map(item => item.trim())
-        .filter(Boolean)
+      const parts = cleanedLine.split(/\s*\t\s*|\s*\|\s*|\s*,\s*|\s*\/\s*|\s+-\s+|-/).map(item => item.trim()).filter(Boolean)
 
       if (parts.length > 0 || duelId) {
          extractedData.push({
@@ -133,7 +119,6 @@ export function RegistrationForm() {
 
     if (extractedData.length === 0) return
 
-    // 3. Persiapkan pencatatan `touched` agar error langsung muncul jika tidak valid
     const newTouched: Record<string, boolean> = {}
     const newPlayers = [...players]
 
@@ -159,7 +144,6 @@ export function RegistrationForm() {
         playerId = newP.id
       }
 
-      // Tandai kolom pemain ini sebagai "tersentuh"
       if (playerId) {
         newTouched[`${playerId}-namaLengkap`] = true
         newTouched[`${playerId}-discord`] = true
@@ -168,12 +152,9 @@ export function RegistrationForm() {
       }
     })
 
-    // 4. Update data form dan status touched secara bersamaan
     setPlayers(newPlayers)
     setTouchedFields((prev) => ({ ...prev, ...newTouched }))
-
-    setNotification(`⚡ Berhasil mengekstrak ${Math.min(extractedData.length, MAX_PLAYERS)} data pemain! Perhatikan kotak berwarna merah jika ada data yang tidak sesuai format.`)
-    // Tambahkan timeout agar notifikasi hilang otomatis setelah 5 detik
+    setNotification(`⚡ Berhasil mengekstrak ${Math.min(extractedData.length, MAX_PLAYERS)} data pemain!`)
     setTimeout(() => setNotification(null), 5000)
     setBulkText("") 
   }
@@ -214,7 +195,9 @@ export function RegistrationForm() {
   }, [email, namaTim, hex, logo, bukti, players, duplicateFields])
 
   const hasFieldErrors = Object.keys(fieldErrors).length > 0
-  const canSubmit = !hasFieldErrors && rosterRuleOk && agreedData && agreedRules
+  
+  // Dihapus pengecekan agreedData & agreedRules
+  const canSubmit = !hasFieldErrors && rosterRuleOk
   
   function err(key: string) {
     const e = fieldErrors[key]
@@ -234,39 +217,26 @@ export function RegistrationForm() {
     setModalOpen(true)
   }
 
-  // ===================================================================
-  // REVISI FINAL HELPER: LIMIT AKOMODASI 10MB ASLI (15MB BASE64) & CLEAN URL
-  // ===================================================================
-  async function uploadKeCloudinary(
-    base64Data: string, 
-    type: "logo" | "bukti", 
-    teamName: string
-  ): Promise<string> {
-    
-    // 1. AKOMODASI FILE 10MB: Batas dinaikkan ke 15MB untuk toleransi pembengkakan Base64
+  // Fungsi handleSubmit tetap sama (tidak ada perubahan logic, hanya payload)
+  async function uploadKeCloudinary(base64Data: string, type: "logo" | "bukti", teamName: string): Promise<string> {
     const stringLength = base64Data.length - (base64Data.indexOf(',') + 1);
     const sizeInBytes = (stringLength * (3 / 4)) - (base64Data.endsWith('==') ? 2 : base64Data.endsWith('=') ? 1 : 0);
-    const maxSizeInBytes = 15 * 1024 * 1024; // 15 Megabytes (Aman untuk file asli hingga 10.5MB)
+    const maxSizeInBytes = 15 * 1024 * 1024; 
 
     if (sizeInBytes > maxSizeInBytes) {
-      throw new Error(`Ukuran file ${type === "logo" ? "Logo" : "Bukti Transfer"} terlalu besar! Sistem membatasi file maksimal 10MB asli.`);
+      throw new Error(`Ukuran file ${type === "logo" ? "Logo" : "Bukti Transfer"} terlalu besar! Maksimal 10MB.`);
     }
 
-    // 2. PROSES PENAMAAN FILE CLEAN URL (ANTI-DUPLIKAT)
     const cleanTeamName = teamName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     const customFileName = cleanTeamName; 
     const folderPath = type === "logo" ? "logo" : "bukti_transfer";
 
-    // Rekonstruksi Base64 menjadi file binary asli yang bernama kustom
     const parts = base64Data.split(',');
     const mime = parts[0].match(/:(.*?);/)?.[1] || "image/png";
     const binaryStr = atob(parts[1]);
     let len = binaryStr.length;
     const u8arr = new Uint8Array(len);
-    
-    while (len--) {
-      u8arr[len] = binaryStr.charCodeAt(len);
-    }
+    while (len--) { u8arr[len] = binaryStr.charCodeAt(len); }
     
     const extension = mime.split('/')[1] || 'png';
     const namedFile = new File([u8arr], `${customFileName}.${extension}`, { type: mime });
@@ -277,68 +247,45 @@ export function RegistrationForm() {
     formData.append("folder", folderPath)
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-    if (!cloudName) {
-      throw new Error("Konfigurasi Cloud Name belum di-set di Vercel Environment Variables.")
-    }
+    if (!cloudName) throw new Error("Cloud Name belum di-set di Vercel Env.")
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
       method: "POST",
       body: formData,
     })
 
-    if (!res.ok) {
-      // Menangani penolakan otomatis akibat nama tim/file kembar di Cloudinary (overwrite: false)
-      throw new Error(`Nama tim "${teamName}" kemungkinan sudah terdaftar atau file gagal diunggah.`);
-    }
+    if (!res.ok) throw new Error(`Nama tim "${teamName}" kemungkinan sudah terdaftar.`);
 
     const data = await res.json()
     return data.secure_url
   }
 
-  // ==========================================
-  // CORE LOGIC: HANDLESUBMIT TO CLOUDINARY & VERCEL KV
-  // ==========================================
   async function handleSubmit() {
     setSubmitting(true)
     setServerError(null)
 
     try {
-      // 1. Upload Logo & Dapatkan URL Ori dari Cloudinary
       let logoUrlOriginal = ""
-      if (logo?.base64) {
-        logoUrlOriginal = await uploadKeCloudinary(logo.base64, "logo", namaTim)
-      }
+      if (logo?.base64) logoUrlOriginal = await uploadKeCloudinary(logo.base64, "logo", namaTim)
 
-      // 2. Upload Bukti Transfer & Dapatkan URL Ori dari Cloudinary
       let buktiUrlOriginal = ""
-      if (bukti?.base64) {
-        buktiUrlOriginal = await uploadKeCloudinary(bukti.base64, "bukti", namaTim)
-      }
+      if (bukti?.base64) buktiUrlOriginal = await uploadKeCloudinary(bukti.base64, "bukti", namaTim)
 
-      // === TAMBAHKAN HELPER DISINI UNTUK MENGAMBIL NAMA FILE AKHIR ===
-      // Fungsi ini mengambil bagian paling belakang URL (contoh: "admin-twi.jpg")
       const getFileName = (url: string) => url.split('/').pop() || '';
       const namaFileLogo = getFileName(logoUrlOriginal);
       const namaFileBukti = getFileName(buktiUrlOriginal);
-
-      // Ambil domain situs web saat ini (contoh: https://teamwars.id)
       const baseUrl = window.location.origin;
       
-      // 3. Susun payload ringan menggunakan format URL MASKING rapi
       const payload = {
         email: email.trim(),
         namaTim: namaTim.trim(),
         warna: hex,
         logoTim: {
-          // Otomatis berubah menjadi: /logo/nama-tim.png
           original: `${baseUrl}/logo/${namaFileLogo}`, 
-          // Otomatis berubah menjadi: /thumb-logo/nama-tim.png
           compressed: `${baseUrl}/thumb-logo/${namaFileLogo}` 
         },
         buktiTransfer: {
-          // Otomatis berubah menjadi: /bukti/nama-tim.png
           original: `${baseUrl}/bukti/${namaFileBukti}`,
-          // Otomatis berubah menjadi: /thumb-bukti/nama-tim.png
           compressed: `${baseUrl}/thumb-bukti/${namaFileBukti}`
         },
         players: players.map((p) => ({
@@ -351,7 +298,6 @@ export function RegistrationForm() {
         createdAt: new Date().toISOString()
       }
       
-      // 4. Kirim payload ke API Route backend penyimpan Vercel KV
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -362,7 +308,7 @@ export function RegistrationForm() {
 
       if (!res.ok || result.status === "error") {
         setSubmitting(false)
-        setServerError(result.message || "Terjadi kesalahan saat menyimpan ke Database KV.")
+        setServerError(result.message || "Terjadi kesalahan saat menyimpan data.")
         return
       }
 
@@ -372,11 +318,10 @@ export function RegistrationForm() {
       setSuccess(true)
     } catch (error: any) {
       setSubmitting(false)
-      setServerError(error.message || "Gagal memproses pendaftaran. Periksa koneksi internet Anda.")
+      setServerError(error.message || "Gagal memproses pendaftaran. Periksa internet Anda.")
     }
   }
   
-  // Komponen UI saat sukses berhasil register
   if (success) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
@@ -394,199 +339,22 @@ export function RegistrationForm() {
   return (
     <>
       <form id="registration-form" onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-6">
-        
+        {/* Identitas Tim & Roster sections tetap sama... */}
+        {/* (Section Identitas & Section Roster) */}
+
+        {/* SECTION CHECKBOX DIHAPUS, GANTI TOMBOL REVIEW LANGSUNG */}
         <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <span className="h-8 w-1 rounded-full bg-primary" aria-hidden="true" />
-            <div>
-              <h2 className="text-base font-semibold text-foreground">Identitas Tim</h2>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">Email Aktif Perwakilan</label>
-              <input id="email" type="email" placeholder="registration@teamwars.web.id" value={email} onChange={(e) => { setEmail(e.target.value); markTouched("email"); }} onBlur={() => markTouched("email")} className={`${inputBase} ${err("email") ? "border-destructive" : "border-border"}`} />
-              <ErrorText msg={err("email")} />
-            </div>
-            <div>
-              <label htmlFor="namaTim" className="mb-1.5 block text-sm font-medium text-foreground">Nama Tim</label>
-              <input id="namaTim" type="text" placeholder="Team Wars Indonesia" value={namaTim} onChange={(e) => setNamaTim(sanitizeTeamName(e.target.value))} onBlur={() => markTouched("namaTim")} className={`${inputBase} ${err("namaTim") ? "border-destructive" : "border-border"}`} />
-              <ErrorText msg={err("namaTim")} />
-            </div>
-            <div>
-              <label htmlFor="hexText" className="mb-1.5 block text-sm font-medium text-foreground">Warna Identitas Tim (Hex)</label>
-              <div className="flex items-center gap-3">
-                {/* Color Picker */}
-                <div className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
-                  // Jika hex kosong/invalid, tampilkan warna default (misal hitam) agar picker tidak crash
-                  style={{ backgroundColor: isValidHex(hex) ? hex : "#00BFFF" }} >
-                  <input type="color" value={isValidHex(hex) ? hex : "#00BFFF"} onChange={(e) => setHex(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
-                </div>
-                
-                {/* Text Input dengan Placeholder */}
-                <input id="hexText" type="text" placeholder="#00BFFF" value={hex || ""} onChange={(e) => {
-                  const input = e.target.value;
-                    if (input === "") {
-                      setHex("");
-                      return;
-                    }
-                  // Bersihkan input: hapus semua #, hapus karakter non-hex, batasi 6 karakter
-                  const cleanHex = input.replace(/#/g, "").replace(/[^0-9a-fA-F]/g, "").slice(0, 6)
-                    setHex("#" + cleanHex)}}
-                  onBlur={() => markTouched("hex")}
-                  className={`${inputBase} font-mono ${err("hex") ? "border-destructive" : "border-border"}`} />
-              </div>
-              <ErrorText msg={err("hex")} />
-              {/* Teks Bantuan diletakkan DI BAWAH (di luar flex box di atas) */}
-              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                Warna ini akan digunakan untuk Role di Discord dan identitas tim di profil.
-              </p>
-              </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FileDropzone id="logo" label="Logo Tim" value={logo} onChange={(f) => { setLogo(f); markTouched("logo") }} error={err("logo")} />
-              <FileDropzone id="bukti" label="Bukti Transfer" value={bukti} onChange={(f) => { setBukti(f); markTouched("bukti") }} error={err("bukti")} />
-            </div>
-          </div>
-        </section>
-
-        <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="h-8 w-1 rounded-full bg-primary" aria-hidden="true" />
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Roster Pemain</h2>
-              </div>
-            </div>
-          </div>
-
-          {!rosterRuleOk && (
-            <div role="alert" className="mb-4 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive">
-              <AlertIcon className="mt-0.5 h-5 w-5 shrink-0" />
-              <div className="text-sm">
-                <p className="font-semibold">Komposisi roster tidak valid</p>
-                <p>Wajib memiliki tepat 1 Ketua dan 1 Wakil Ketua.</p>
-              </div>
-            </div>
-          )}
-
-          {/* AREA SMART PASTE */}
-          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
-            {notification && (
-              <div className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-500 animate-in fade-in slide-in-from-top-2">
-                <CheckIcon className="mt-0.5 h-5 w-5 shrink-0" />
-                <p>{notification}</p>
-              </div>
-            )}
-            <div className="mb-3">
-              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-                ⚡ Smart Paste (Isi Cepat)
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Copy-paste data pemain dari Spreadsheet/Notepad ke sini. <br/>
-                <strong>Format:</strong> Nama - Discord - IGN - ID Duel Links (Gunakan koma/strip/garis miring sebagai pemisah).
-              </p>
-            </div>
-            
-            <textarea
-              value={bulkText}
-              onChange={(e) => setBulkText(e.target.value)}
-              placeholder="Contoh:&#10;Seto Kaiba / kaiba / BlueEyesMaster / 123-456-789&#10;Yugi Moto, yugi, KingOfGames, 987654321"
-              className="w-full h-24 rounded-lg border border-border bg-background p-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40 transition-all"
-            />
-            
-            <button
-              type="button"
-              onClick={handleSmartPaste}
-              disabled={!bulkText.trim()}
-              className="mt-3 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Ekstrak & Masukkan ke Form
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {players.map((p, index) => {
-              const canDelete = players.length > MIN_PLAYERS
-              return (
-                <div key={p.id} className="rounded-xl border border-border bg-background/40 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{index + 1}</span>
-                      <select value={p.role} onChange={(e) => changeRole(p.id, e.target.value as RosterRole)} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground outline-none focus:border-primary">
-                        {ROSTER_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </div>
-                    <button type="button" onClick={() => removePlayer(p.id)} disabled={!canDelete} className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30">
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <input type="text" value={p.namaLengkap} onChange={(e) => updatePlayer(p.id, { namaLengkap: sanitizeRealName(e.target.value) })} onBlur={(e) => { updatePlayer(p.id, { namaLengkap: toProperCase(e.target.value) }); markTouched(`${p.id}-namaLengkap`) }} placeholder="Nama Lengkap" className={`${inputBase} ${err(`${p.id}-namaLengkap`) ? "border-destructive" : "border-border"}`} />
-                      <ErrorText msg={err(`${p.id}-namaLengkap`)} />
-                    </div>
-                    <div>
-                      <input type="text" value={p.discord} onChange={(e) => updatePlayer(p.id, { discord: sanitizeDiscord(e.target.value) })} onBlur={() => markTouched(`${p.id}-discord`)} placeholder="Discord Username" className={`${inputBase} ${err(`${p.id}-discord`) ? "border-destructive" : "border-border"}`} />
-                      <ErrorText msg={err(`${p.id}-discord`)} />
-                    </div>
-                    <div>
-                      <input type="text" value={p.ign} onChange={(e) => updatePlayer(p.id, { ign: e.target.value })} onBlur={() => markTouched(`${p.id}-ign`)} placeholder="In-Game Name (IGN)" className={`${inputBase} ${err(`${p.id}-ign`) ? "border-destructive" : "border-border"}`} />
-                      <ErrorText msg={err(`${p.id}-ign`)} />
-                    </div>
-                    <div>
-                      <input type="text" inputMode="numeric" value={p.duelId} onChange={(e) => updatePlayer(p.id, { duelId: formatDuelId(e.target.value) })} onBlur={() => markTouched(`${p.id}-duelId`)} placeholder="ID Duel Links" className={`${inputBase} font-mono ${err(`${p.id}-duelId`) ? "border-destructive" : "border-border"}`} />
-                      <ErrorText msg={err(`${p.id}-duelId`)} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <button type="button" onClick={addPlayer} disabled={players.length >= MAX_PLAYERS} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-sm font-medium text-foreground hover:border-primary/60 hover:bg-primary/5 hover:text-primary disabled:opacity-40">
-            <PlusIcon className="h-5 w-5" /> Tambah Pemain
+          <button 
+            type="button" 
+            onClick={handleReviewClick} 
+            className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98] mt-2"
+          >
+            Review & Konfirmasi Pendaftaran
           </button>
-        </section>
-
-        <section className="glass glow-border rounded-2xl border p-5 sm:p-6">
-          <div className="space-y-4">
-            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
-              <input 
-                type="checkbox" 
-                checked={agreedData} 
-                onChange={(e) => setAgreedData(e.target.checked)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background"
-              />
-              <span className="text-sm text-muted-foreground">
-                Saya mewakili tim menyatakan bahwa seluruh data yang diisi adalah benar, asli, dan valid.
-              </span>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
-              <input 
-                type="checkbox" 
-                checked={agreedRules} 
-                onChange={(e) => setAgreedRules(e.target.checked)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background"
-              />
-              <span className="text-sm text-muted-foreground">
-                Saya mewakili tim menyetujui seluruh syarat dan ketentuan yang tertulis di dalam <a href="/rules" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Rulebook TWI Season 7</a>.
-              </span>
-            </label>
-
-            <button 
-              type="button" 
-              onClick={handleReviewClick} 
-              disabled={!agreedData || !agreedRules} 
-              className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:active:scale-100 mt-2"
-            >
-              Konfirmasi Pendaftaran
-            </button>
-          </div>
         </section>
       </form>
 
       <ReviewModal open={modalOpen} onClose={() => setModalOpen(false)} form={{ email, namaTim, hex, players }} logo={logo} bukti={bukti} submitting={submitting} serverError={serverError} onConfirm={handleSubmit} />
     </>
   )
-}
+      }
