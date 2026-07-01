@@ -435,11 +435,12 @@ export function RegistrationForm() {
                     setHex("#" + cleanHex)}}
                   onBlur={() => markTouched("hex")}
                   className={`${inputBase} font-mono ${err("hex") ? "border-destructive" : "border-border"}`} />
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Warna ini akan digunakan untuk <strong>Role di Discord</strong> dan identitas tim di profil.
-                </p>
               </div>
               <ErrorText msg={err("hex")} />
+              {/* Teks Bantuan diletakkan DI BAWAH (di luar flex box di atas) */}
+              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                Warna ini akan digunakan untuk Role di Discord dan identitas tim di profil.
+              </p>
               </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FileDropzone id="logo" label="Logo Tim" value={logo} onChange={(f) => { setLogo(f); markTouched("logo") }} error={err("logo")} />
