@@ -113,13 +113,13 @@ export default function Page() {
             TEAM WARS INDONESIA
           </h1>
 
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            Season 7 — Duel Links
+          </p>
+
           {/* Deskripsi Narasi TWI */}
           <p className="mt-4 max-w-xl text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
             Team Wars Indonesia (TWI) merupakan kompetisi komunitas yang menjadi wadah utama bagi para duelist untuk menguji strategi dan kemampuan terbaik mereka. Dengan sejarah penyelenggaraan yang konsisten, TWI berkomitmen untuk terus menghadirkan ekosistem kompetitif yang sehat, inklusif, dan suportif bagi seluruh pemain di Indonesia.
-          </p>
-
-          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Season 7 — Duel Links
           </p>
           
           {/* INFO PEMBAYARAN */}
