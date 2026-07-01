@@ -1,5 +1,3 @@
-// Nama file: app/page.tsx
-// PERHATIKAN: Tidak ada "use client" di sini!
 
 import type { Metadata } from 'next'
 import PageClient from './page-client' // Mengimpor UI dari file sebelah
