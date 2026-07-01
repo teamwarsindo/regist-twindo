@@ -9,7 +9,7 @@ import { ShieldIcon, TrashIcon } from "@/components/icons"
 export default function Page() {
   const [isCopied, setIsCopied] = useState(false);
   const [isConfirmTrashOpen, setIsConfirmTrashOpen] = useState(false);
-  const accountNumber = "0460967538";
+  const accountNumber = "0467897733";
 
   const handleCopy = async () => {
     try {
