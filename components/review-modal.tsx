@@ -54,11 +54,11 @@ export function ReviewModal({
   const [answer, setAnswer] = useState("")
   const [captchaError, setCaptchaError] = useState<string | null>(null)
 
-  // Task 25: Checkbox Persetujuan State
+  // Checkbox Persetujuan State
   const [setujuData, setSetujuData] = useState(false)
   const [setujuRules, setSetujuRules] = useState(false)
 
-  // Task 20: Zoom Lightbox State
+  // Zoom Lightbox State
   const [isZoomed, setIsZoomed] = useState(false)
 
   // Regenerate & Reset states whenever the modal opens
@@ -87,7 +87,11 @@ export function ReviewModal({
 
   function handleConfirm() {
     if (!captchaOk) {
-      setCaptchaError("Jawaban captcha salah. Coba lagi.")
+      // TASK 28: Refresh Captcha jika salah
+      setCaptchaError("Jawaban captcha salah. Angka telah diacak ulang, silakan coba lagi.")
+      setA(Math.floor(Math.random() * 8) + 1)
+      setB(Math.floor(Math.random() * 8) + 1)
+      setAnswer("")
       return
     }
     setCaptchaError(null)
@@ -122,6 +126,8 @@ export function ReviewModal({
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
+            
+            {/* TASK 30: Sebelah Logo adalah Nama Tim (Value) */}
             <div className="mb-4 flex items-center gap-4">
               {logo && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -131,22 +137,30 @@ export function ReviewModal({
                   className="h-14 w-14 rounded-full border-2 border-border object-cover bg-background"
                 />
               )}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-bold tracking-wide uppercase">Warna Tim</span>
-                <span
-                  className="h-5 w-5 rounded-md border border-border ml-2"
-                  style={{ backgroundColor: form.hex }}
-                  aria-hidden="true"
-                />
-                <span className="font-mono text-sm text-muted-foreground">{form.hex}</span>
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground font-bold tracking-wide uppercase mb-0.5">Nama Tim</span>
+                <span className="text-lg font-bold text-foreground leading-tight">{form.namaTim}</span>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-card px-4 py-2">
               <Row label="Email" value={form.email} />
-              <Row label="Nama Tim" value={form.namaTim} />
               
-              {/* Task 19 & 20: Pratinjau Bukti Transfer Khusus & Proporsional */}
+              {/* TASK 29: Posisi Warna Tim diletakkan di kotak (menggantikan posisi Nama Tim sebelumnya) */}
+              <div className="flex flex-col gap-0.5 border-b border-border py-2 last:border-0 sm:flex-row sm:justify-between sm:gap-4 items-start sm:items-center">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Warna Tim
+                </span>
+                <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                  <span
+                    className="h-5 w-5 rounded-md border border-border"
+                    style={{ backgroundColor: form.hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-sm text-foreground">{form.hex}</span>
+                </div>
+              </div>
+              
               <div className="flex flex-col gap-2 py-4 border-t border-border mt-2">
                 <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">
                   Bukti Transfer
@@ -193,7 +207,6 @@ export function ReviewModal({
               ))}
             </div>
 
-            {/* Task 25: Checkbox Persetujuan (Pindah dari Form Utama) */}
             <div className="mt-6 pt-5 border-t border-border space-y-3">
               <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50 cursor-pointer select-none">
                 <input 
@@ -215,12 +228,21 @@ export function ReviewModal({
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-primary bg-background text-primary focus:ring-primary focus:ring-offset-background cursor-pointer"
                 />
                 <span className="text-sm text-muted-foreground leading-relaxed">
-                  Saya mewakili tim menyetujui seluruh syarat dan ketentuan yang tertulis di dalam <span className="text-primary font-semibold">Rulebook TWI Season 7</span>.
+                  Saya mewakili tim menyetujui seluruh syarat dan ketentuan yang tertulis di dalam{' '}
+                  {/* TASK 31: Link Rulebook bisa dibuka tab baru + stopPropagation agar klik link tidak memicu checkbox secara tidak sengaja */}
+                  <a 
+                    href="/rules" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-primary font-semibold hover:underline"
+                  >
+                    Rulebook TWI Season 7
+                  </a>.
                 </span>
               </label>
             </div>
 
-            {/* Math Captcha */}
             <div className="mt-5 rounded-xl border border-border bg-muted/40 p-4">
               <label
                 htmlFor="captcha"
@@ -275,7 +297,6 @@ export function ReviewModal({
             <button
               type="button"
               onClick={handleConfirm}
-              // Tombol akan terkunci jika belum centang 2 rules, jawaban kosong, atau sedang loading
               disabled={submitting || !setujuData || !setujuRules || !answer.trim()}
               className="flex-[2] rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all enabled:hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -285,7 +306,6 @@ export function ReviewModal({
         </div>
       </div>
 
-      {/* Task 20: Lightbox Zoom Modal (Diluar Container Form agar bisa Full Screen) */}
       {isZoomed && bukti?.base64 && (
         <div 
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200"
@@ -304,4 +324,5 @@ export function ReviewModal({
       )}
     </>
   )
-  }
+                      }
+                             
