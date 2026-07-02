@@ -399,7 +399,7 @@ export function RegistrationForm() {
               <div className="flex items-center gap-3">
                 <div className="relative h-11 w-12 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary"
                   style={{ backgroundColor: isValidHex(hex) ? hex : "#00BFFF" }} >
-                  <input type="color" value={isValidHex(hex) ? hex : "#00BFFF"} onChange={(e) => setHex(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                  <input type="color" value={isValidHex(hex) ? hex : "#00BFFF"} onChange={(e) => setHex(e.target.valuetoUpperCase())} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                 </div>
                 
                 <input
